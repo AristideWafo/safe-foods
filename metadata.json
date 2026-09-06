@@ -1,0 +1,10 @@
+{
+  "name": "SafeEat",
+  "description": "Application d'aide à la détection d'allergènes alimentaires via scan de code-barres.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

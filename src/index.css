@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+:root {
+  --brand-50: #eef4ff;
+  --brand-100: #dce9ff;
+  --brand-300: #83adff;
+  --brand-500: #1769ff;
+  --brand-600: #0e55db;
+  --brand-700: #0a42ae;
+
+  --coral-50: #fff0ee;
+  --coral-100: #ffd9d4;
+  --coral-500: #ff5d52;
+  --coral-600: #e8443b;
+  --coral-800: #8d211d;
+
+  --lime-100: #efffc4;
+  --lime-400: #c6ef35;
+  --lime-600: #739900;
+  --lime-800: #334a00;
+
+  --amber-50: #fff8dc;
+  --amber-400: #ffc43d;
+  --amber-600: #a86600;
+  --amber-800: #5c3900;
+
+  --violet-50: #f5f0ff;
+  --violet-100: #e9ddff;
+  --violet-500: #855cff;
+  --violet-700: #5b36c9;
+
+  --cream: #fff9f0;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --navy-950: #0d1b36;
+  --navy-700: #35425c;
+  --navy-500: #677189;
+  --line: #e9e9ee;
+  --scrim: rgb(5 12 28 / 56%);
+
+  --action: var(--brand-500);
+  --danger: var(--coral-500);
+  --warning: var(--amber-400);
+  --verified: var(--lime-400);
+  --information: var(--violet-500);
+  --text-primary: var(--navy-950);
+  --text-secondary: var(--navy-700);
+  --text-muted: var(--navy-500);
+  --background: var(--cream);
+
+  --gradient-action: linear-gradient(135deg, #0e73ff 0%, #1769ff 55%, #6045ff 100%);
+  --gradient-danger: linear-gradient(180deg, #ff6b60 0%, #ff473d 100%);
+  --gradient-camera: linear-gradient(180deg, rgb(5 12 28 / 12%), rgb(5 12 28 / 70%));
+  --gradient-lavender: linear-gradient(135deg, #f7f2ff, #eee6ff);
+  --gradient-source: linear-gradient(135deg, #fffdf1, #fff5c9);
+}
+
+@theme {
+  /* Colors */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: #ffffff;
+  
+  --color-primary-50: var(--brand-50);
+  --color-primary-100: var(--brand-100);
+  --color-primary-500: var(--brand-500);
+  --color-primary-600: var(--brand-600);
+  
+  --color-border-subtle: var(--line);
+  --color-overlay: var(--scrim);
+
+  --color-action: var(--action);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-verified: var(--verified);
+  --color-information: var(--information);
+
+  /* Border Radius */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --radius-pill: 999px;
+
+  /* Typography */
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base resets to match mobile app feel */
+* {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection only on specific elements if needed */
+p, h1, h2, h3, h4, h5, h6, span {
+  user-select: auto;
+}
