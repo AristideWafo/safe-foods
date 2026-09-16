@@ -14,7 +14,7 @@ sequenceDiagram
     participant S as Profil et historique locaux
     participant M as Moteur local
     participant L as localStorage
-    participant OFF as Open Food Facts
+    participant FoodDb as Open Food Facts
     participant API as Serveur SafeEat
     participant G as Google Gemini
 
@@ -38,9 +38,9 @@ sequenceDiagram
     alt Code-barres invalide
         UI-->>U: Demander de corriger le code, sans appel externe
     else Code-barres valide
-        UI->>OFF: Rechercher la fiche par code-barres (sans profil personnel)
+        UI->>FoodDb: Rechercher la fiche par code-barres (sans profil personnel)
         alt Produit trouvé et réponse valide
-            OFF-->>UI: Ingrédients, tags allergènes, présence possible et dates
+            FoodDb-->>UI: Ingrédients, tags allergènes, présence possible et dates
             UI->>S: Enregistrer une nouvelle observation du produit
             S->>M: Comparer les données au profil et aux mots-clés personnalisés
             Note over S,M: Les allergènes personnalisés n’ont pas de tags OFF dédiés.<br/>Leur détection repose sur le texte et les mots-clés configurés.
@@ -49,10 +49,10 @@ sequenceDiagram
             UI-->>U: Afficher le résumé puis le détail des preuves
             Note over UI,M: Correspondance explicite en ingrédients : À éviter.<br/>Présence possible, ambiguïté ou données incomplètes : À vérifier.<br/>Aucune correspondance personnalisée : reste À vérifier.
         else Produit absent
-            OFF-->>UI: Produit introuvable
+            FoodDb-->>UI: Produit introuvable
             UI-->>U: Proposer de vérifier le code ou de photographier l’étiquette
         else Erreur réseau, délai dépassé ou données invalides
-            OFF-->>UI: Échec de la recherche
+            FoodDb-->>UI: Échec de la recherche
             UI-->>U: Afficher l’erreur et permettre une nouvelle tentative ou une photo
         end
     end
