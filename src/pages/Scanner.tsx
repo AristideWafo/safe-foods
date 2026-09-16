@@ -169,6 +169,7 @@ export const Scanner = () => {
   };
 
   const processImageWithAI = async (base64String: string) => {
+    if (!window.confirm('Cette photo sera envoyée à Google Gemini pour lire les ingrédients. SafeEat ne conserve pas la photo sur son serveur. Évitez les informations personnelles. Continuer ?')) return;
     setState('analyzing');
     await stopScannerSafely();
 
@@ -176,11 +177,11 @@ export const Scanner = () => {
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64String })
+        body: JSON.stringify({ imageBase64: base64String, consent: true })
       });
       
-      if (!response.ok) throw new Error('API Error');
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Analyse photo indisponible.');
       
       const product: Product = {
         barcode: 'SCAN_OCR',
@@ -195,7 +196,7 @@ export const Scanner = () => {
     } catch (error) {
       console.error(error);
       setState('error');
-      setErrorMsg("Erreur lors de l'analyse de l'image.");
+      setErrorMsg(error instanceof Error ? error.message : 'Erreur lors de l’analyse de l’image.');
     }
   };
 
