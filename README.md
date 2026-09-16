@@ -12,7 +12,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Le serveur charge `.env`. Renseigner `GEMINI_API_KEY` pour activer l’analyse photo ; les codes-barres fonctionnent sans clé. `GEMINI_MODEL` permet de choisir un modèle accessible au compte. Le modèle par défaut apparaît dans les [exemples officiels Google](https://ai.google.dev/gemini-api/docs/generate-content/thinking) ; son accès effectif dépend de la clé et du quota.
+Le serveur charge `.env`. Renseigner `GEMINI_API_KEY` pour activer l’analyse photo ; les codes-barres fonctionnent sans clé. `GEMINI_MODEL` permet de choisir un modèle accessible au compte. Le modèle par défaut `gemini-3.5-flash-lite` a été vérifié avec une étiquette fictive ; les réglages de réflexion apparaissent dans les [exemples officiels Google](https://ai.google.dev/gemini-api/docs/generate-content/thinking) ; son accès effectif dépend de la clé et du quota.
 
 Production :
 
@@ -44,6 +44,8 @@ Les appels sont limités à 30 demandes POST par IP sur 15 minutes, deux analyse
 Derrière un reverse proxy, définir `TRUST_PROXY_HOPS` au nombre exact de relais de confiance ; laisser zéro sans proxy. Ne pas exposer directement un serveur configuré pour faire confiance à des relais inexistants.
 
 ## Confidentialité
+
+Les analyses réussies sont enregistrées automatiquement (50 au maximum) et rouvertes via leur identifiant local, y compris les photos après rechargement. Les résultats sont recalculés avec le profil actuel ; les dates de consultation des données restent inchangées.
 
 Le profil et l’historique sont conservés dans le localStorage du navigateur, sans compte ni synchronisation. Le serveur SafeEat ne conserve pas les photos et ne journalise pas leur contenu. Google reçoit la photo pour l’extraction ; consulter les règles du fournisseur applicables au compte. Éviter les photos contenant des informations personnelles.
 

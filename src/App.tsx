@@ -21,6 +21,7 @@ export default function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="history" element={<History />} />
           <Route path="scanner" element={<Scanner />} />
+          <Route path="scan/:scanId" element={<Result />} />
           <Route path="result" element={<Result />} />
           <Route path="result/:barcode" element={<Result />} />
           <Route path="*" element={<NotFound />} />

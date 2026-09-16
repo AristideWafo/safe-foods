@@ -1,56 +1,19 @@
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-
-interface BottomSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-
-export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, children }) => {
-  // Optional: Add drag to close
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-overlay z-40"
-          />
-          
-          {/* Sheet */}
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            drag="y"
-            dragConstraints={{ top: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(e, info) => {
-              if (info.offset.y > 100 || info.velocity.y > 500) {
-                onClose();
-              }
-            }}
-            className="absolute bottom-0 left-0 right-0 bg-surface rounded-t-[32px] shadow-2xl z-50 flex flex-col max-h-[90dvh]"
-          >
-            {/* Handle */}
-            <div className="w-full flex justify-center py-3 flex-shrink-0">
-              <div className="w-[36px] h-[4px] bg-[#D8D8D8] rounded-pill" />
-            </div>
-            
-            {/* Content Container */}
-            <div className="flex-1 overflow-y-auto px-6 pb-safe">
-              {children}
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
+import { useEffect, useId, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { IconButton } from '../primitives/IconButton';
+interface BottomSheetProps { isOpen: boolean; onClose: () => void; children: ReactNode; title?: string; }
+export const BottomSheet = ({ isOpen, onClose, children, title = 'Options' }: BottomSheetProps) => {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const dialog = ref.current;
+    if (isOpen && dialog && !dialog.open) dialog.showModal();
+    return () => { if (dialog?.open) dialog.close(); };
+  }, [isOpen]);
+  if (!isOpen) return null;
+  return <dialog ref={ref} aria-labelledby={titleId} onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) { const r = event.currentTarget.getBoundingClientRect(); if (event.clientY < r.top || event.clientX < r.left || event.clientX > r.right) onClose(); } }} className="fixed bottom-0 top-auto mx-auto w-full max-w-[480px] max-h-[90dvh] overflow-y-auto rounded-t-[30px] border-0 p-6 bg-surface text-text-primary shadow-2xl backdrop:bg-black/60">
+    <div className="flex justify-between items-center mb-5"><h2 id={titleId} className="font-display font-bold text-[20px]">{title}</h2><IconButton icon={<X />} onClick={onClose} aria-label="Fermer le dialogue" /></div>
+    {children}
+  </dialog>;
 };
