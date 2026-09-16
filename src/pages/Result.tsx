@@ -255,7 +255,7 @@ const EvidenceAccordion = ({ result, product }: { result: AnalysisResult, produc
           expanded ? "max-h-[1000px] opacity-100 pb-4" : "max-h-0 opacity-0 invisible"
         )}
         aria-hidden={!expanded}
-        {...(!expanded ? { inert: "" } : {})}
+        {...(!expanded ? { inert: true } : {})}
       >
         <div className="h-[1px] bg-border-subtle w-full mb-4" />
         

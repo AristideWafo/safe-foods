@@ -31,7 +31,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md', c
         icon: <ShieldCheck />,
         label: isHero ? 'AUCUN ALLERGÈNE DÉTECTÉ' : 'Aucun détecté'
       };
-      case 'UNKNOWN':
       default: return {
         bg: 'bg-text-tertiary/10',
         text: 'text-text-secondary',

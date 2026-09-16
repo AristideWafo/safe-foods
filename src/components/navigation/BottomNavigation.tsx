@@ -29,7 +29,7 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
           {isActive && (
             <div className="absolute top-[-8px] w-[30px] h-[3px] bg-primary-500 rounded-b-full" />
           )}
-          {React.cloneElement(icon as React.ReactElement, { className: "w-6 h-6 mb-0.5" })}
+          {React.cloneElement(icon as React.ReactElement<{ className?: string }>,  { className: "w-6 h-6 mb-0.5" })}
           <span className="text-[11px] font-semibold">{label}</span>
         </>
       )}
