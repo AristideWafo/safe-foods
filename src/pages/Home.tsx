@@ -85,6 +85,7 @@ export const Home = () => {
                 barcode={scan.barcode}
                 productName={scan.product.name}
                 status={scan.result.status}
+                thumbnailUrl={scan.product.imageUrl}
                 scannedAt={new Date(scan.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
               />
             ))}

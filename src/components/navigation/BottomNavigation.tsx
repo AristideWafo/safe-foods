@@ -1,11 +1,11 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Home, ScanLine, History, UserRound } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const BottomNavigation = () => {
   return (
-    <nav className="absolute bottom-0 w-full bg-white/96 backdrop-blur-[18px] pb-[max(12px,env(safe-area-inset-bottom))] pt-2 px-6 flex justify-between items-center z-40 border-t border-border-subtle h-[calc(74px+max(12px,env(safe-area-inset-bottom)))]">
+    <nav className="shrink-0 w-full bg-white/96 backdrop-blur-[18px] pb-[max(12px,env(safe-area-inset-bottom))] pt-2 px-6 flex justify-between items-center z-40 border-t border-border-subtle h-[calc(74px+max(12px,env(safe-area-inset-bottom)))]">
       <NavItem to="/" icon={<Home />} label="Accueil" />
       <NavItem to="/scanner" icon={<ScanLine />} label="Scanner" />
       <NavItem to="/history" icon={<History />} label="Historique" />

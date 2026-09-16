@@ -16,7 +16,7 @@ interface RecentScanRowProps {
 export const RecentScanRow: React.FC<RecentScanRowProps> = ({
   id, barcode, productName, scannedAt, thumbnailUrl, status
 }) => {
-  
+
   const getStatusIcon = () => {
     switch (status) {
       case 'AVOID': return <div className="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center shrink-0" aria-label="À éviter"><span className="text-[18px] font-bold leading-none -mt-[2px]">!</span></div>;
@@ -27,8 +27,8 @@ export const RecentScanRow: React.FC<RecentScanRowProps> = ({
   };
 
   return (
-    <Link 
-      to={`/result/${barcode}`} 
+    <Link
+      to={`/scan/${encodeURIComponent(id)}`}
       className="flex items-center min-h-[72px] p-3 rounded-[16px] bg-white border border-border-subtle shadow-[0_4px_12px_rgba(13,27,54,0.03)] transition-transform active:scale-[0.98] hover:bg-black/5"
     >
       {thumbnailUrl ? (
@@ -40,7 +40,7 @@ export const RecentScanRow: React.FC<RecentScanRowProps> = ({
           <span className="text-[10px] font-bold text-text-muted uppercase text-center leading-none">Photo<br/>N/A</span>
         </div>
       )}
-      
+
       <div className="flex-1 min-w-0 mr-3">
         <h3 className="font-semibold text-text-primary text-[15px] truncate leading-tight mb-0.5">
           {productName || "Produit inconnu"}

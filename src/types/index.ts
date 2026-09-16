@@ -34,6 +34,10 @@ export interface Product {
   ingredientsText: string;
   allergensHierarchy: string[];
   tracesTags: string[];
+  source?: "openfoodfacts" | "photo";
+  fetchedAt?: number;
+  updatedAt?: number;
+  analysisModel?: string;
 }
 
 export interface AnalysisResult {
@@ -48,6 +52,7 @@ export interface ScanHistoryItem {
   id: string;
   date: number;
   barcode: string;
-  product?: Product;
+  product: Product;
+  allergiesAtScan?: AllergenId[];
   result: AnalysisResult;
 }
