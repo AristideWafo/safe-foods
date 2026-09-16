@@ -28,3 +28,13 @@ L’outil de contrôle du navigateur n’a pas permis de mener l’import de fic
 Les limites d’appels IA sont adaptées à un processus et restent en mémoire. Un déploiement sur plusieurs instances nécessitera un compteur partagé et des quotas côté fournisseur. Aucun déploiement public, réglage de protection de branche, compte utilisateur ou synchronisation entre appareils n’a été ajouté : ces points relèvent du choix de déploiement ou d’une évolution du produit.
 
 Les tests navigateur ont utilisé l’origine `127.0.0.1`, distincte du profil existant sur `localhost`. Le profil existant n’a pas été réinitialisé.
+
+## Refonte du scanner — 16 septembre 2026
+
+- Référence visuelle : écran clair, aperçu caméra unique arrondi, bouton de scan central, galerie et flash, résultat en panneau inférieur.
+- Suppression des onglets et du second cadre ; le positionnement imposé par html5-qrcode est limité au conteneur caméra.
+- Saisie manuelle dans le menu ; import et capture des ingrédients avec consentement conservés.
+- Résultat enregistré une seule fois, résumé avec statut allergique puis lien vers les détails persistants.
+- Vérification navigateur : disposition standard et mobile 375 × 667, menu, formulaire, produit Nutella réel, résumé À éviter avec lait et détail persistant après rechargement.
+- Types stricts, lint du code versionné, 69 tests, compilation et smoke de production réussis. Des copies locales non suivies « … 2 » sont conservées ; elles sont exclues du lint local de cette vérification et ne sont pas incluses dans la PR.
+- La caméra physique et le flash dépendent du matériel ; leur détection effective reste à confirmer sur téléphone.
