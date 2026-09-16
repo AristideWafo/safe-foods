@@ -21,7 +21,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md', c
       };
       case 'UNCERTAIN': return {
         bg: 'bg-warning/10',
-        text: 'text-warning',
+        text: 'text-amber-800',
         icon: <CircleHelp />,
         label: isHero ? 'PRUDENCE' : 'Prudence'
       };

@@ -20,7 +20,7 @@ export const InlineNotice: React.FC<InlineNoticeProps> = ({ tone, title, descrip
         "rounded-xl p-4 flex gap-3",
         tone === 'info' && "bg-information/10 text-information",
         tone === 'success' && "bg-verified/10 text-verified",
-        tone === 'warning' && "bg-warning/10 text-warning",
+        tone === 'warning' && "bg-warning/10 text-amber-800",
         tone === 'error' && "bg-danger/10 text-danger",
         className
       )}

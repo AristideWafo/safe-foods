@@ -28,10 +28,11 @@ L’application écoute par défaut sur `127.0.0.1:3000`. `PORT` et `HOST` sont 
 ## Vérifications
 
 ```sh
-npm run lint
-npm test
-npm run build
+npm run check
+npm run smoke
 ```
+
+Le mode TypeScript strict, ESLint (hooks React et accessibilité), les tests et la compilation sont exécutés par `check`. La CI reproduit ces contrôles sur Node 22, teste le serveur compilé puis vérifie son fonctionnement sans dépendances de développement. Les routes sont chargées à la demande et le scanner est séparé du JavaScript initial.
 
 Les tests HTTP ouvrent des ports locaux temporaires. La suite utilise des réponses fournisseur simulées ; un test réel doit utiliser une étiquette fictive et une clé autorisée. Ne jamais enregistrer une vraie clé dans Git ou dans les résultats de test.
 

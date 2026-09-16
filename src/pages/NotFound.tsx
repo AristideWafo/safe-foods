@@ -1,11 +1,9 @@
-import * as LucideIcons from 'lucide-react';
-import React from 'react';
+import { PackageOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/primitives/Button';
 
 export const NotFound = () => {
   const navigate = useNavigate();
-  const PackageOpen = LucideIcons.PackageOpen;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-background min-h-full">

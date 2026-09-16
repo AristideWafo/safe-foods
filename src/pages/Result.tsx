@@ -14,28 +14,26 @@ export const Result = () => {
   const { barcode, scanId } = useParams<{ barcode: string; scanId: string }>();
   const { history, allergies, recordScan } = useStore();
   const scan = history.find(item => item.id === scanId);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ barcode: string; message: string } | null>(null);
+  const staticError = scanId ? (!scan ? 'Cette analyse n’est plus dans l’historique de ce navigateur.' : null)
+    : !barcode || barcode === 'SCAN_OCR' || barcode.startsWith('OCR-') ? 'Cette analyse n’a pas été sauvegardée. Scannez à nouveau le produit ou les ingrédients.' : null;
+  const error = staticError || (loadError?.barcode === barcode ? loadError?.message : null);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     const controller = new AbortController();
-    setError(null);
-    if (scanId) {
-      if (!scan) setError('Cette analyse n’est plus dans l’historique de ce navigateur.');
-    } else if (!barcode || barcode === 'SCAN_OCR' || barcode.startsWith('OCR-')) {
-      setError('Cette analyse photo n’a pas été sauvegardée. Photographiez à nouveau les ingrédients.');
-    } else {
+    if (!scanId && barcode && !staticError) {
       void fetchProductByBarcode(barcode, controller.signal).then(product => {
         if (controller.signal.aborted) return;
-        if (!product) { setError('Produit introuvable. Vous pouvez photographier les ingrédients.'); return; }
+        if (!product) { setLoadError({ barcode, message: 'Produit introuvable. Vous pouvez photographier les ingrédients.' }); return; }
         navigate(`/scan/${recordScan(product)}`, { replace: true });
-      }).catch(error => { if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Erreur lors de la recherche.'); });
+      }).catch(error => { if (!controller.signal.aborted) setLoadError({ barcode, message: error instanceof Error ? error.message : 'Erreur lors de la recherche.' }); });
     }
     return () => controller.abort();
-  }, [barcode, scanId, scan, recordScan, navigate, retry]);
+  }, [barcode, scanId, scan, recordScan, navigate, retry, staticError]);
   if (error) return <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-6 bg-background" role="alert">
     <TriangleAlert className="w-12 h-12 text-warning" />
     <h1 className="text-title-lg font-bold">Analyse indisponible</h1><p>{error}</p>
-    {barcode && !barcode.startsWith('OCR') && barcode !== 'SCAN_OCR' && <Button onClick={() => setRetry(value => value + 1)}>Réessayer la recherche</Button>}
+    {barcode && !barcode.startsWith('OCR') && barcode !== 'SCAN_OCR' && <Button onClick={() => { setLoadError(null); setRetry(value => value + 1); }}>Réessayer la recherche</Button>}
     <Button onClick={() => navigate('/scanner')}>Scanner ou importer une photo</Button>
     <Button variant="ghost" onClick={() => navigate('/')}>Retour à l’accueil</Button>
   </div>;

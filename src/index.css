@@ -39,17 +39,17 @@
   --scrim: rgb(5 12 28 / 56%);
 
   --action: var(--brand-500);
-  --danger: var(--coral-500);
+  --danger: var(--coral-800);
   --warning: var(--amber-400);
-  --verified: var(--lime-400);
-  --information: var(--violet-500);
+  --verified: var(--lime-800);
+  --information: var(--violet-700);
   --text-primary: var(--navy-950);
   --text-secondary: var(--navy-700);
   --text-muted: var(--navy-500);
   --background: var(--cream);
 
-  --gradient-action: linear-gradient(135deg, #0e73ff 0%, #1769ff 55%, #6045ff 100%);
-  --gradient-danger: linear-gradient(180deg, #ff6b60 0%, #ff473d 100%);
+  --gradient-action: linear-gradient(135deg, #0e55db 0%, #0e55db 55%, #6045ff 100%);
+  --gradient-danger: linear-gradient(180deg, #c7352c 0%, #a91e1a 100%);
   --gradient-camera: linear-gradient(180deg, rgb(5 12 28 / 12%), rgb(5 12 28 / 70%));
   --gradient-lavender: linear-gradient(135deg, #f7f2ff, #eee6ff);
   --gradient-source: linear-gradient(135deg, #fffdf1, #fff5c9);
@@ -80,6 +80,17 @@
   --color-verified: var(--verified);
   --color-information: var(--information);
 
+  --color-text-tertiary: var(--navy-500);
+  --color-primary-300: var(--brand-300);
+  --color-coral-800: var(--coral-800);
+  --color-amber-800: var(--amber-800);
+  --text-display-lg: 32px;
+  --text-display-xl: 36px;
+  --text-title-xl: 24px;
+  --text-title-lg: 22px;
+  --text-title-md: 20px;
+  --text-body-md: 16px;
+
   /* Border Radius */
   --radius-xs: 8px;
   --radius-sm: 10px;
@@ -103,11 +114,14 @@ body {
 
 /* Base resets to match mobile app feel */
 * {
-  user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* Allow text selection only on specific elements if needed */
 p, h1, h2, h3, h4, h5, h6, span {
   user-select: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
