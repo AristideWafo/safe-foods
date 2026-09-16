@@ -125,3 +125,24 @@ p, h1, h2, h3, h4, h5, h6, span {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* html5-qrcode sets inline positioning: keep its camera inside the preview. */
+.scanner-camera #reader-container {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+.scanner-camera video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+.scanner-camera #qr-shaded-region { display: none !important; }
+@media (max-height: 650px) {
+  .scanner-screen header { padding-top: 12px; }
+  .scanner-camera { max-height: 36dvh; }
+}
