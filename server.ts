@@ -2,12 +2,13 @@ import express from 'express';
 import path from 'node:path';
 import { config } from './server/config';
 import { createApp } from './server/app';
-import { createGeminiAnalyzer } from './server/gemini';
+import { createGeminiAnalyzer, createGeminiSynonymSuggester } from './server/gemini';
 
 async function startServer() {
   const analyzer = config.apiKey && config.apiKey !== 'MY_GEMINI_API_KEY'
     ? createGeminiAnalyzer(config.apiKey, config.model, config.timeoutMs) : undefined;
-  const app = createApp({ ...config, analyzer });
+  const synonymSuggester = analyzer ? createGeminiSynonymSuggester(config.apiKey!, config.model, config.timeoutMs) : undefined;
+  const app = createApp({ ...config, analyzer, synonymSuggester });
   let closeVite: (() => Promise<void>) | undefined;
   if (!config.production) {
     const { createServer } = await import('vite');
