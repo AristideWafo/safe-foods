@@ -1,0 +1,1 @@
+export const CountBadge = ({ count }: { count: number }) => <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 ml-2 rounded-full bg-primary-500 text-white text-[13px] leading-none font-bold align-middle">{count}</span>;

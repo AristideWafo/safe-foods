@@ -28,3 +28,25 @@ test('photo restored from persisted storage after rehydration', async () => {
   const restored = useStore.getState().history.find(item => item.id === id);
   assert.equal(restored?.product.barcode, 'SCAN_OCR'); assert.equal(restored?.result.status, 'AVOID');
 });
+test('favorites toggle without changing the analysis and survive rehydration', async () => {
+  useStore.setState({ allergies: ['milk'], history: [] });
+  const id = useStore.getState().recordScan(product);
+  useStore.getState().toggleFavorite(id);
+  const favorite = useStore.getState().history[0];
+  assert.equal(favorite.isFavorite, true);
+  assert.equal(favorite.result.status, 'AVOID');
+  const snapshot = localStorage.getItem('safe-eat-storage');
+  assert.ok(snapshot);
+  useStore.setState({ history: [] });
+  localStorage.setItem('safe-eat-storage', snapshot);
+  await useStore.persist.rehydrate();
+  assert.equal(useStore.getState().history[0].isFavorite, true);
+  useStore.getState().toggleFavorite(id);
+  assert.equal(useStore.getState().history[0].isFavorite, false);
+});
+test('old scans remain valid and product descriptions are retained', () => {
+  const state = sanitizeStoredState({ history: [{ id: 'details', date: 100, product: { ...product, brand: 'Marque test', quantity: '125 g' } }] });
+  assert.equal(state.history[0].isFavorite, false);
+  assert.equal(state.history[0].product.brand, 'Marque test');
+  assert.equal(state.history[0].product.quantity, '125 g');
+});

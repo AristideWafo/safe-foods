@@ -8,6 +8,8 @@ export const parseProduct = (value: unknown): Product | null => {
   const safeImage = typeof value.imageUrl === 'string' && /^https:\/\//.test(value.imageUrl) ? value.imageUrl : undefined;
   return {
     barcode: value.barcode, name: value.name || 'Produit inconnu', ingredientsText: value.ingredientsText,
+    brand: typeof value.brand === 'string' ? value.brand : undefined,
+    quantity: typeof value.quantity === 'string' ? value.quantity : undefined,
     allergensHierarchy, tracesTags, imageUrl: safeImage,
     source: value.source === 'photo' || value.barcode === 'SCAN_OCR' ? 'photo' : 'openfoodfacts',
     fetchedAt: typeof value.fetchedAt === 'number' && Number.isFinite(value.fetchedAt) ? value.fetchedAt : undefined,

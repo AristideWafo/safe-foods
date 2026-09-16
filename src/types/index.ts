@@ -12,7 +12,8 @@ export type AllergenId =
   | 'sesame'
   | 'sulphites'
   | 'lupin'
-  | 'molluscs';
+  | 'molluscs'
+  | `custom:${string}`;
 
 export type AnalysisStatus = 'SAFE' | 'AVOID' | 'UNCERTAIN';
 
@@ -23,6 +24,7 @@ export interface AllergenDef {
   label: string;
   icon: AllergenIconName;
   offTags: string[]; // OpenFoodFacts tags to match (en or fr)
+  keywords?: string[];
 }
 
 export interface UserProfile {
@@ -32,6 +34,8 @@ export interface UserProfile {
 export interface Product {
   barcode: string;
   name: string;
+  brand?: string;
+  quantity?: string;
   imageUrl?: string;
   ingredientsText: string;
   allergensHierarchy: string[];
@@ -57,4 +61,5 @@ export interface ScanHistoryItem {
   product: Product;
   allergiesAtScan?: AllergenId[];
   result: AnalysisResult;
+  isFavorite?: boolean;
 }

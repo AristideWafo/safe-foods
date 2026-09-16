@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, TriangleAlert, ChevronDown, Eye, RefreshCw, Info, Link as LinkIcon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import type { Product, AnalysisResult } from '../types';
-import { ALLERGENS } from '../constants/allergens';
+import { getAllergenDefinitions } from '../constants/customAllergens';
 import { IconButton } from '../components/primitives/IconButton';
 import { Button } from '../components/primitives/Button';
 import { fetchProductByBarcode } from '../services/OpenFoodFacts';
@@ -12,7 +12,7 @@ import { analyzeProduct } from '../services/AnalysisEngine';
 export const Result = () => {
   const navigate = useNavigate();
   const { barcode, scanId } = useParams<{ barcode: string; scanId: string }>();
-  const { history, allergies, recordScan } = useStore();
+  const { history, allergies, customAllergens, recordScan } = useStore();
   const scan = history.find(item => item.id === scanId);
   const [loadError, setLoadError] = useState<{ barcode: string; message: string } | null>(null);
   const staticError = scanId ? (!scan ? 'Cette analyse n’est plus dans l’historique de ce navigateur.' : null)
@@ -38,7 +38,7 @@ export const Result = () => {
     <Button variant="ghost" onClick={() => navigate('/')}>Retour à l’accueil</Button>
   </div>;
   if (!scan) return <div className="flex-1 flex flex-col items-center justify-center gap-4" role="status" aria-live="polite"><RefreshCw className="animate-spin w-10 h-10 text-primary-500" /><p>Recherche du produit…</p></div>;
-  const result = analyzeProduct(scan.product, allergies);
+  const result = analyzeProduct(scan.product, allergies, customAllergens);
   return <ResultView product={scan.product} result={result} onBack={() => navigate('/')} onScan={() => navigate('/scanner')} onProfile={() => navigate('/profile')} profileEmpty={!allergies.length} />;
 };
 
@@ -47,21 +47,24 @@ export const ResultView = ({ product, result, onBack, onScan, onProfile, profile
 }) => {
   const theme = result.status === 'AVOID' ? { title: 'À ÉVITER', bg: 'var(--gradient-danger)' }
     : result.status === 'UNCERTAIN' ? { title: 'PRUDENCE', bg: 'var(--amber-400)' }
-    : { title: 'AUCUN DÉTECTÉ', bg: 'linear-gradient(135deg, #1769ff, #0e55db)' };
-  return <div className="flex-1 min-h-0 h-full flex flex-col bg-background">
-    <header className={`shrink-0 px-6 pt-[max(16px,env(safe-area-inset-top))] pb-6 ${result.status === 'UNCERTAIN' ? 'text-amber-950' : 'text-white'}`} style={{ background: theme.bg }}>
-      <IconButton icon={<ArrowLeft />} tone={result.status === 'UNCERTAIN' ? 'neutral' : 'light'} onClick={onBack} aria-label="Retour à l’accueil" />
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-primary-600">{result.status === 'SAFE' ? <ShieldCheck className="w-10 h-10" /> : <TriangleAlert className="w-10 h-10 text-amber-700" />}</div>
-        <h1 className="text-[28px] font-display font-extrabold">{theme.title}</h1>
+    : { title: 'AUCUN DÉTECTÉ', bg: 'linear-gradient(135deg, #006e2f, #007432)' };
+  return <div className="flex-1 min-h-0 h-full flex flex-col bg-background overflow-y-auto">
+    <div className="shrink-0 flex gap-3 items-center px-5 pt-[max(16px,env(safe-area-inset-top))] pb-5"><IconButton icon={<ArrowLeft />} onClick={onBack} aria-label="Retour à l’accueil" /><h1 className="font-display font-bold text-[22px]">Résultat du scan</h1></div>
+    <header className={`shrink-0 mx-5 rounded-[28px] px-6 py-7 ${result.status === 'UNCERTAIN' ? 'text-amber-950' : 'text-white'}`} style={{ background: theme.bg }}>
+      <button onClick={onProfile} className="block mx-auto rounded-full bg-[#101827] text-white text-[13px] font-bold px-4 py-2 mb-6">{profileEmpty ? 'PROFIL À CONFIGURER' : 'PROFIL : ALLERGIES ACTIVES'}</button>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-verified">{result.status === 'SAFE' ? <ShieldCheck className="w-12 h-12" /> : <TriangleAlert className="w-12 h-12 text-danger" />}</div>
+        <h2 className="text-[28px] font-display font-extrabold">{theme.title}</h2>
         <p className="font-bold text-center break-words">{product.name}</p>
+        {product.imageUrl && <img src={product.imageUrl} alt={product.name} className="h-28 w-28 object-contain rounded-2xl bg-white p-2 mt-2" />}
       </div>
     </header>
-    <div className="flex-1 min-h-0 overflow-y-auto px-6 py-6 space-y-5">
+    <div className="guardian-card relative shrink-0 mx-5 -mt-2 rounded-t-[28px] bg-white px-5 py-6 space-y-5">
+      <div className="w-12 h-1.5 rounded-full bg-border-subtle mx-auto" aria-hidden="true" />
       <p className="text-[15px] leading-relaxed" role="status">{result.explanation}</p>
       {profileEmpty && <Button fullWidth onClick={onProfile}>Configurer mes allergies</Button>}
       <EvidenceAccordion product={product} result={result} />
-      <div className="rounded-2xl bg-amber-50 border border-amber-100 p-4 text-[13px] leading-relaxed">
+      <div className="rounded-[24px] bg-[#f4ede3] p-4 text-[13px] leading-relaxed">
         <h2 className="font-bold text-[15px] flex gap-2 items-center"><Info className="w-5 h-5" />Source et consultation</h2>
         <p>{product.source === 'photo' || product.barcode === 'SCAN_OCR' ? 'Lecture automatique de votre photo par Google Gemini.' : 'Fiche collaborative Open Food Facts.'}</p>
         <p>Consultation : {formatDate(product.fetchedAt)}</p>
@@ -73,7 +76,7 @@ export const ResultView = ({ product, result, onBack, onScan, onProfile, profile
       <p className="text-[13px] text-text-secondary">Analyse enregistrée dans ce navigateur. Le résultat est recalculé avec vos allergies actuelles ; la date de consultation reste celle du scan.</p>
       <p className="text-[13px] text-text-secondary leading-relaxed">SafeEat est un outil d’aide. Vérifiez toujours l’étiquette et les conseils du fabricant. En cas de doute ou d’allergie sévère, ne consommez pas le produit.</p>
     </div>
-    <footer className="shrink-0 bg-white border-t border-border-subtle p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+    <footer className="shrink-0 mx-5 bg-white rounded-b-[28px] px-5 pb-6">
       <Button fullWidth size="lg" onClick={onScan} leadingIcon={<RefreshCw className="w-5 h-5" />}>Nouvelle analyse</Button>
     </footer>
   </div>;
@@ -81,12 +84,14 @@ export const ResultView = ({ product, result, onBack, onScan, onProfile, profile
 const formatDate = (date?: number) => date && Number.isFinite(date) ? new Date(date).toLocaleString('fr-FR') : 'non renseignée';
 
 export const EvidenceAccordion = ({ result, product }: { result: AnalysisResult; product: Product }) => {
-  const all = ALLERGENS.filter(a => [...result.detectedAllergens, ...result.detectedTraces, ...(result.textualMatches || [])].includes(a.id));
+  const customAllergens = useStore(state => state.customAllergens);
+  const all = getAllergenDefinitions(customAllergens).filter(a => [...result.detectedAllergens, ...result.detectedTraces, ...(result.textualMatches || [])].includes(a.id));
   const photo = product.source === 'photo' || product.barcode === 'SCAN_OCR';
-  return <details className="rounded-[20px] border border-border-subtle bg-white p-4" open={result.status !== 'SAFE'}>
+  return <details className="rounded-[24px] bg-white" open={result.status !== 'SAFE'}>
     <summary className="flex justify-between items-center cursor-pointer font-bold focus-visible:outline-primary-500"><span className="flex items-center gap-2"><Eye className="w-5 h-5 text-violet-600" />Voir les preuves</span><ChevronDown className="w-5 h-5" /></summary>
     <div className="pt-4 space-y-4">
-      {all.map(a => <div key={a.id}>
+      {all.map(a => <div key={a.id} className="rounded-[24px] bg-[#f5f0ff] p-4 space-y-2">
+        <span className="inline-block rounded-full bg-information text-white px-3 py-1 text-[13px] font-bold">{result.detectedTraces.includes(a.id) ? 'TRACES' : 'INGRÉDIENT'}</span>
         <h3 className="font-bold">{a.label}</h3>
         {result.detectedAllergens.includes(a.id) && <p className="text-[13px]">{photo ? 'Ingrédient repéré par lecture automatique de la photo, à vérifier.' : 'Allergène signalé dans les tags Open Food Facts.'}</p>}
         {result.detectedTraces.includes(a.id) && <p className="text-[13px]">{photo ? 'Avertissement de traces repéré sur la photo, à vérifier.' : 'Trace signalée dans la fiche Open Food Facts.'}</p>}

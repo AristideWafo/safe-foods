@@ -13,7 +13,7 @@ export const fetchProductByBarcode = async (barcode: string, signal?: AbortSigna
   if (signal?.aborted) controller.abort();
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, 15000);
   try {
-    const fields = 'code,product_name_fr,product_name,ingredients_text_fr,ingredients_text,allergens_hierarchy,traces_tags,image_front_url,last_modified_t';
+    const fields = 'code,product_name_fr,product_name,brands,quantity,ingredients_text_fr,ingredients_text,allergens_hierarchy,traces_tags,image_front_url,last_modified_t';
     const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json?fields=${fields}`, { signal: controller.signal });
     if (response.status === 404) return null;
     if (response.status === 429) throw new ProductFetchError('RATE_LIMITED', 'Open Food Facts reçoit trop de demandes. Réessayez dans quelques minutes.');
@@ -25,6 +25,7 @@ export const fetchProductByBarcode = async (barcode: string, signal?: AbortSigna
     const p = data.product;
     const result = parseProduct({
       barcode, name: p.product_name_fr || p.product_name || 'Produit inconnu',
+      brand: p.brands, quantity: p.quantity,
       imageUrl: p.image_front_url, ingredientsText: p.ingredients_text_fr || p.ingredients_text || '',
       allergensHierarchy: p.allergens_hierarchy, tracesTags: p.traces_tags,
       source: 'openfoodfacts', fetchedAt: Date.now(), updatedAt: typeof p.last_modified_t === 'number' ? p.last_modified_t * 1000 : undefined,

@@ -1,8 +1,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
-import { BrandMark } from './BrandMark';
+import { ChevronLeft, UserRound } from 'lucide-react';
 import { IconButton } from '../primitives/IconButton';
 
 interface AppHeaderProps {
@@ -34,8 +33,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     )}>
       {variant === 'home' && (
         <>
-          <BrandMark />
-          {rightAction}
+          <h1 className="font-display font-bold text-title-xl">Accueil</h1>
+          {rightAction || <button onClick={() => navigate('/profile')} aria-label="Mon profil" className="w-11 h-11 flex items-center justify-center bg-primary-500 text-white rounded-full"><UserRound className="w-5 h-5" /></button>}
         </>
       )}
 
@@ -48,7 +47,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               onClick={handleBack}
             />
           </div>
-          <h1 className="flex-1 text-center font-display font-bold text-title-md text-text-primary">
+          <h1 className="flex-1 ml-3 font-display font-bold text-title-xl text-text-primary">
             {title}
           </h1>
           <div className="w-11 flex justify-end">

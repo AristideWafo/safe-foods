@@ -1,34 +1,47 @@
 import { Icon } from '../components/Icon';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { ALLERGENS } from '../constants/allergens';
+import { History, Lightbulb, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getAllergenDefinitions } from '../constants/customAllergens';
 import { AppHeader } from '../components/navigation/AppHeader';
 import { ScanHeroCard } from '../components/scanner/ScanHeroCard';
-import { RecentScanRow, RecentScansEmptyState } from '../components/history/RecentScanRow';
+import { HomeRecentScanRow, getLatestTodayScans } from '../components/history/HomeRecentScanRow';
 import { SurfaceCard } from '../components/layout/SurfaceCard';
 import { AllergenChip } from '../components/allergies/AllergenChip';
 import { Button } from '../components/primitives/Button';
+import { CountBadge } from '../components/feedback/CountBadge';
 
 export const Home = () => {
-  const { history, allergies } = useStore();
+  const { history, allergies, customAllergens } = useStore();
   const navigate = useNavigate();
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-  const selectedAllergenDefs = ALLERGENS.filter(a => allergies.includes(a.id));
-  const recentHistory = [...history].sort((a, b) => b.date - a.date).slice(0, 3);
+  const selectedAllergenDefs = getAllergenDefinitions(customAllergens).filter(a => allergies.includes(a.id));
+  const recentHistory = getLatestTodayScans(history, now);
 
   return (
-    <div className="flex-1 min-h-full bg-background flex flex-col pb-6">
+    <div className="stitch-home-ambient flex-1 min-h-full bg-background flex flex-col pb-6">
       <AppHeader variant="home" />
 
-      <div className="px-6 mt-2 mb-6">
-        <h2 className="text-display-lg text-text-primary font-display font-extrabold tracking-tight">Bonjour 👋</h2>
+      <div className="stitch-home-greeting relative px-6 mt-2 mb-7 pt-5">
+        <span className="inline-flex items-center gap-2 rounded-full bg-[#16a34a] text-white px-3.5 py-1.5 text-[13px] font-bold mb-3 shadow-sm"><span className="w-2 h-2 rounded-full bg-white" />{allergies.length ? 'Mode protection active' : 'Profil à configurer'}</span>
+        <svg aria-hidden="true" className="absolute top-8 right-14 w-6 h-6 text-[#efbeb8]" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" /></svg>
+        <h2 className="text-display-lg text-text-primary font-display font-bold tracking-tight">Bonjour 👋</h2>
+        <p className="text-text-secondary mt-1">Prêt à faire vos courses sereinement ?</p>
       </div>
+
+      <div className="px-6 mb-8"><ScanHeroCard onActivate={() => navigate('/scanner')} /></div>
 
       {/* Allergy Summary */}
       <div className="px-6 mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-[16px] font-bold text-text-primary">Mes allergies</h2>
+          <h2 className="text-[18px] font-display font-bold text-text-primary">Mes allergies <CountBadge count={allergies.length} /></h2>
+          <button onClick={() => navigate('/profile')} className="text-primary-600 font-bold text-[14px] py-2">Modifier</button>
         </div>
         
         {allergies.length > 0 ? (
@@ -62,37 +75,26 @@ export const Home = () => {
         )}
       </div>
       
-      {/* Hero Scan Card */}
-      <div className="px-6 mb-8">
-        <ScanHeroCard 
-          onActivate={() => navigate('/scanner')}
-        />
-      </div>
-
       {/* Recent Scans */}
       <div className="px-6 mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-[16px] font-bold text-text-primary">Scans récents</h2>
+          <h2 className="text-[18px] font-display font-bold text-text-primary flex items-center gap-2">Scans récents <History className="w-[18px] h-[18px] text-text-muted" aria-hidden="true" /></h2>
+          <button onClick={() => navigate('/history')} className="text-primary-600 font-bold text-[14px] py-2">Tout voir</button>
         </div>
         {recentHistory.length > 0 ? (
           <div className="flex flex-col gap-3">
             {recentHistory.map((scan) => (
-              <RecentScanRow 
-                key={scan.id}
-                id={scan.id}
-                barcode={scan.barcode}
-                productName={scan.product.name}
-                status={scan.result.status}
-                thumbnailUrl={scan.product.imageUrl}
-                scannedAt={new Date(scan.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-              />
+              <HomeRecentScanRow key={scan.id} scan={scan} now={now} />
             ))}
           </div>
         ) : (
-          <RecentScansEmptyState />
+          <SurfaceCard className="text-center"><PackageEmptyNotice /><Button variant="ghost" size="sm" onClick={() => navigate('/scanner')}>Scanner un produit</Button></SurfaceCard>
         )}
       </div>
+      <aside className="home-safeeat-tip mx-6"><span className="home-tip-icon" aria-hidden="true"><Lightbulb /></span><div className="min-w-0"><h2 className="text-primary-600 text-[13px] font-bold mb-1">ASTUCE SAFEEAT</h2><p>Rescannez vos produits favoris régulièrement : leur composition peut changer. Vérifiez toujours l’étiquette.</p></div></aside>
       
     </div>
   );
 };
+
+const PackageEmptyNotice = () => <p className="text-[14px] text-text-secondary mb-2">Aucun scan aujourd’hui. Vos anciens scans restent disponibles dans l’historique.</p>;
