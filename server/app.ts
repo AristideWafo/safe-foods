@@ -4,9 +4,11 @@ import { rateLimit } from 'express-rate-limit';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from './errors';
 import { parseImage, parseAnalysis } from './image';
-import type { ImageAnalyzer } from './gemini';
+import { cleanSynonyms } from '../src/services/Synonyms';
+import { isRecord } from '../src/services/ProductValidation';
+import type { ImageAnalyzer, SynonymSuggester } from './gemini';
 
-export interface AppOptions { analyzer?: ImageAnalyzer; model?: string; timeoutMs?: number; concurrency?: number; dailyLimit?: number; trustProxy?: number; rateLimit?: number; }
+export interface AppOptions { analyzer?: ImageAnalyzer; synonymSuggester?: SynonymSuggester; model?: string; timeoutMs?: number; concurrency?: number; dailyLimit?: number; trustProxy?: number; rateLimit?: number; }
 export const createApp = (options: AppOptions = {}) => {
   const app = express();
   app.disable('x-powered-by');
@@ -22,7 +24,8 @@ export const createApp = (options: AppOptions = {}) => {
   let active = 0;
   let used = 0;
   let day = new Date().toISOString().slice(0, 10);
-  app.post('/api/analyze-image', async (req, res) => {
+  app.post(['/api/analyze-image', '/api/suggest-synonyms'], async (req, res) => {
+    const suggesting = req.path === '/api/suggest-synonyms';
     const requestId = randomUUID();
     let admitted = false;
     const controller = new AbortController();
@@ -32,22 +35,30 @@ export const createApp = (options: AppOptions = {}) => {
     try {
       if (req.headers.origin && req.headers.origin !== `${req.protocol}://${req.get('host')}`) throw new ApiError(403, 'ORIGIN_DENIED', 'Cette requête doit provenir de l’application.');
       if (!req.is('application/json')) throw new ApiError(415, 'INVALID_CONTENT_TYPE', 'Le corps doit être au format JSON.');
-      const image = parseImage(req.body?.imageBase64);
-      if (req.body?.consent !== true) throw new ApiError(400, 'PHOTO_CONSENT_REQUIRED', 'Confirmez l’envoi de cette photo à Google Gemini.');
-      if (!options.analyzer) throw new ApiError(503, 'AI_NOT_CONFIGURED', 'L’analyse photo n’est pas configurée. Utilisez un code-barres.', false);
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      if (suggesting && (name.length < 2 || name.length > 60 || /[\n\r]/.test(name) || !/[\p{L}\p{N}]/u.test(name))) throw new ApiError(400, 'INVALID_ALLERGEN_NAME', 'Saisissez un nom entre 2 et 60 caractères.');
+      const image = suggesting ? undefined : parseImage(req.body?.imageBase64);
+      if (!suggesting && req.body?.consent !== true) throw new ApiError(400, 'PHOTO_CONSENT_REQUIRED', 'Confirmez l’envoi de cette photo à Google Gemini.');
+      if (suggesting ? !options.synonymSuggester : !options.analyzer) throw new ApiError(503, 'AI_NOT_CONFIGURED', suggesting ? 'Les suggestions IA ne sont pas configurées. Vous pouvez saisir les autres noms.' : 'L’analyse photo n’est pas configurée. Utilisez un code-barres.', false);
       const today = new Date().toISOString().slice(0, 10);
       if (today !== day) { day = today; used = 0; }
       if (active >= (options.concurrency ?? 2)) throw new ApiError(429, 'AI_BUSY', 'Des analyses sont déjà en cours. Réessayez dans un instant.', true);
-      if (used >= (options.dailyLimit ?? 100)) throw new ApiError(429, 'DAILY_LIMIT_REACHED', 'La limite quotidienne d’analyse photo est atteinte. Utilisez un code-barres.', false);
+      if (used >= (options.dailyLimit ?? 100)) throw new ApiError(429, 'DAILY_LIMIT_REACHED', 'La limite quotidienne de demandes IA est atteinte. Réessayez demain.', false);
       active++; used++; admitted = true;
       const deadline = new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => { controller.abort(); reject(new ApiError(504, 'AI_TIMEOUT', 'L’analyse prend trop de temps. Réessayez.', true)); }, options.timeoutMs ?? 30000);
       });
-      const raw = await Promise.race([options.analyzer(image, controller.signal), deadline]);
+      const raw = await Promise.race([suggesting ? options.synonymSuggester!(name, controller.signal) : options.analyzer!(image!, controller.signal), deadline]);
+      if (suggesting) {
+        const synonyms = isRecord(raw) ? cleanSynonyms(raw.synonyms, name) : null;
+        if (!synonyms) throw new ApiError(422, 'INVALID_SUGGESTIONS', 'Les suggestions reçues sont invalides. Saisissez les autres noms ou réessayez.', true);
+        if (!controller.signal.aborted) res.json({ synonyms });
+        return;
+      }
       const analysis = parseAnalysis(raw);
       if (!controller.signal.aborted) res.json({ ...analysis, source: 'photo', fetchedAt: Date.now(), analysisModel: options.model });
     } catch (error) {
-      const failure = error instanceof ApiError ? error : new ApiError(503, 'AI_SERVICE_UNAVAILABLE', 'Le service d’analyse est indisponible. Réessayez ou utilisez un code-barres.', true);
+      const failure = error instanceof ApiError ? error : new ApiError(503, 'AI_SERVICE_UNAVAILABLE', suggesting ? 'Les suggestions IA sont indisponibles. Vous pouvez saisir les autres noms.' : 'Le service d’analyse est indisponible. Réessayez ou utilisez un code-barres.', true);
       // Do not log images, labels, credentials or raw provider errors.
       if (failure.status >= 500) console.error(JSON.stringify({ requestId, code: failure.code }));
       if (!res.destroyed) res.status(failure.status).json({ error: { code: failure.code, message: failure.message, retryable: failure.retryable }, requestId });

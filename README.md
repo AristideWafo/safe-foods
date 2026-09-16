@@ -94,7 +94,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Le serveur charge `.env`. Renseigner `GEMINI_API_KEY` pour activer l’analyse photo ; les codes-barres fonctionnent sans clé. `GEMINI_MODEL` permet de choisir un modèle accessible au compte. Le modèle par défaut `gemini-3.5-flash-lite` a été vérifié avec une étiquette fictive ; les réglages de réflexion apparaissent dans les [exemples officiels Google](https://ai.google.dev/gemini-api/docs/generate-content/thinking) ; son accès effectif dépend de la clé et du quota.
+Le serveur charge `.env`. Renseigner `GEMINI_API_KEY` pour activer l’analyse photo et les suggestions de synonymes ; les codes-barres fonctionnent sans clé. `GEMINI_MODEL` permet de choisir un modèle accessible au compte. Le modèle par défaut `gemini-3.5-flash-lite` a été vérifié avec une étiquette fictive ; les réglages de réflexion apparaissent dans les [exemples officiels Google](https://ai.google.dev/gemini-api/docs/generate-content/thinking) ; son accès effectif dépend de la clé et du quota.
 
 Production :
 
@@ -132,11 +132,11 @@ Le périmètre de conclusion est limité aux étiquettes françaises de produits
 
 Depuis le résultat, « Vérifier ce produit avec une photo » crée une observation séparée, conserve les textes précédents et signale leurs divergences. Les différences de format peuvent également déclencher une vérification : aucune résolution automatique par fusion ou vote. Une relecture est enregistrée séparément, sans modifier le scan initial ni rafraîchir artificiellement la date de consultation. Les tags sans phrase source n’obtiennent jamais de citation inventée. Les anciennes analyses sont recalculées conservativement à la restauration.
 
-L’API photo conserve les passages lisibles d’une extraction partielle et transmet `labelReadable`, `ingredientsComplete`, `warningsComplete`, `language` et `warningsText`. Une réponse structurée valide n’atteste pas la fidélité de la lecture. Les anciens fournisseurs simulés sans nouveaux champs sont acceptés, mais restent inconclusifs. Aucune allergie personnelle n’est envoyée au fournisseur.
+L’API photo conserve les passages lisibles d’une extraction partielle et transmet `labelReadable`, `ingredientsComplete`, `warningsComplete`, `language` et `warningsText`. Une réponse structurée valide n’atteste pas la fidélité de la lecture. Les anciens fournisseurs simulés sans nouveaux champs sont acceptés, mais restent inconclusifs. L’analyse photo n’envoie pas le profil d’allergies au fournisseur.
 
 Le corpus figé de `tests/safety-corpus.test.ts` couvre les catégories standards, les dérivés explicites, les négations, les exceptions limitées, les avertissements, la complétude, les conflits et la restauration. Il est **synthétique, non validé médicalement**. Les tests HTTP simulent le fournisseur : ils ne mesurent pas les omissions réelles de Gemini sur les photos.
 
-Avant un usage réel : constituer un corpus de photos d’étiquettes avec transcription et annotations revues, mesurer séparément les omissions d’extraction et les erreurs du moteur, puis faire relire les règles par une personne qualifiée. Les synonymes IA automatiques, le multilingue étendu, le cache inter-achats et l’optimisation supplémentaire des images restent hors de cette étape. Le dictionnaire lexical reste incomplet ; les exceptions réglementaires et les distinctions allergie/intolérance ne constituent pas une ontologie médicale implémentée.
+Avant un usage réel : constituer un corpus de photos d’étiquettes avec transcription et annotations revues, mesurer séparément les omissions d’extraction et les erreurs du moteur, puis faire relire les règles par une personne qualifiée. L’ajout de synonymes sans validation humaine, le multilingue étendu, le cache inter-achats et l’optimisation supplémentaire des images restent hors de cette étape. Le dictionnaire lexical reste incomplet ; les exceptions réglementaires et les distinctions allergie/intolérance ne constituent pas une ontologie médicale implémentée.
 
 ### Transport et quotas
 
@@ -153,3 +153,11 @@ Les analyses réussies sont enregistrées automatiquement (50 au maximum) et rou
 Le profil et l’historique sont conservés dans le localStorage du navigateur, sans compte ni synchronisation. Le serveur SafeEat ne conserve pas les photos et ne journalise pas leur contenu. Google reçoit la photo pour l’extraction ; consulter les règles du fournisseur applicables au compte. Éviter les photos contenant des informations personnelles.
 
 Le [rapport initial](RAPPORT_AUDIT.md) décrit les défauts découverts avant les corrections et sert de référence historique.
+
+## Suggestions de synonymes par IA
+
+Dans « Ajouter mon allergène », le badge bleu avec l’icône d’étincelles déclenche `POST /api/suggest-synonyms` avec `{ "name": "Kiwi" }`. Seul ce nom est envoyé à Google Gemini ; le profil et l’historique ne sont pas transmis. Le serveur réutilise `GEMINI_API_KEY`, `GEMINI_MODEL` et le délai configuré pour l’IA.
+
+La réponse est `{ "synonyms": ["kiwifruit", "actinidia deliciosa"] }`. Les noms sont nettoyés, dédupliqués, limités à 19 propositions de 60 caractères maximum. L’utilisateur peut modifier un tag, le supprimer ou le retenir avec « + ». Seuls les noms retenus, ainsi que ceux saisis manuellement, sont enregistrés localement avec « Ajouter et activer ». Les propositions restantes sont ignorées. Une absence de suggestions est un résultat valide ; en cas d’erreur ou sans clé API, la saisie manuelle reste disponible.
+
+Ces propositions ne sont pas exhaustives et peuvent être inexactes ; elles ne changent pas les limites du moteur pour les allergènes personnalisés. Les deux routes IA partagent les limites de fréquence, de concurrence et le budget quotidien. L’API renvoie des erreurs JSON pour un nom invalide (400), des propositions invalides (422), un quota atteint (429), un fournisseur indisponible (503) ou un délai dépassé (504).
