@@ -41,6 +41,7 @@ export interface AnalysisResult {
   explanation: string;
   detectedAllergens: AllergenId[];
   detectedTraces: AllergenId[];
+  textualMatches?: AllergenId[];
 }
 
 export interface ScanHistoryItem {

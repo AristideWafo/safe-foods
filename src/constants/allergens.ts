@@ -16,3 +16,22 @@ export const ALLERGENS: AllergenDef[] = [
   { id: 'lupin', label: 'Lupin', icon: 'Flower2', offTags: ['en:lupin', 'fr:lupin'] },
   { id: 'molluscs', label: 'Mollusques', icon: 'Shell', offTags: ['en:molluscs', 'fr:mollusques', 'fr:mollusque'] },
 ];
+
+// Ingredient vocabulary is separate from database taxonomy tags.
+// This is a conservative matching aid, not a complete ingredient ontology.
+export const INGREDIENT_KEYWORDS: Record<import('../types').AllergenId, string[]> = {
+  gluten: ['gluten', 'blé', 'wheat', 'orge', 'barley', 'seigle', 'rye', 'avoine', 'oat', 'épeautre', 'spelt', 'kamut', 'triticale'],
+  crustaceans: ['crustacé', 'crustacean', 'crevette', 'shrimp', 'prawn', 'crabe', 'crab', 'homard', 'lobster', 'langoustine', 'écrevisse'],
+  eggs: ['œuf', 'oeuf', 'egg', 'ovalbumine', 'albumen'],
+  fish: ['poisson', 'fish', 'saumon', 'salmon', 'thon', 'tuna', 'anchois', 'anchovy', 'cabillaud', 'morue', 'sardine', 'truite'],
+  peanuts: ['arachide', 'peanut', 'cacahuète', 'cacahouète'],
+  soybeans: ['soja', 'soya', 'soy', 'soybean', 'tofu', 'edamame'],
+  milk: ['lait', 'milk', 'beurre', 'butter', 'crème', 'cream', 'lactosérum', 'whey', 'fromage', 'cheese', 'caséine', 'casein', 'caséinate', 'lactose', 'yaourt', 'yogurt', 'dairy'],
+  nuts: ['fruits à coque', 'nut', 'amande', 'almond', 'noisette', 'hazelnut', 'noix', 'walnut', 'cajou', 'cashew', 'pécan', 'pecan', 'pistache', 'pistachio', 'macadamia', 'noix du brésil', 'brazil nut'],
+  celery: ['céleri', 'celery', 'celeriac'],
+  mustard: ['moutarde', 'mustard'],
+  sesame: ['sésame', 'sesame', 'tahini', 'tahin'],
+  sulphites: ['sulfite', 'sulphite', 'sulfites', 'sulphites', 'anhydride sulfureux', 'dioxyde de soufre', 'sulphur dioxide', 'sulfur dioxide', 'e220', 'e221', 'e222', 'e223', 'e224', 'e225', 'e226', 'e227', 'e228'],
+  lupin: ['lupin', 'lupine'],
+  molluscs: ['mollusque', 'mollusc', 'moule', 'mussel', 'huître', 'oyster', 'calamar', 'squid', 'seiche', 'escargot', 'palourde', 'coquille saint jacques'],
+};

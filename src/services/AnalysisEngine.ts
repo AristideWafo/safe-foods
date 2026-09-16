@@ -1,128 +1,64 @@
-import { Product, AnalysisResult, AllergenId } from '../types';
-import { ALLERGENS } from '../constants/allergens';
+import type { Product, AnalysisResult, AllergenId } from '../types';
+import { ALLERGENS, INGREDIENT_KEYWORDS } from '../constants/allergens';
+
+export const normalizeIngredientText = (text: string) => text
+  .toLowerCase().replace(/œ/g, 'oe').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[’']/g, ' ').replace(/-/g, ' ').replace(/\s+/g, ' ');
+
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const hasUnnegatedMention = (text: string, keywords: string[]) => keywords.some(keyword => {
+  const word = escapeRegex(normalizeIngredientText(keyword));
+  // Word boundaries prevent matches in unrelated ingredient names; allow plurals.
+  const pattern = new RegExp(`(?<![a-z])${word}(?:s|es)?(?![a-z])`, 'g');
+  for (const match of text.matchAll(pattern)) {
+    const before = text.slice(0, match.index);
+    const after = text.slice(match.index! + match[0].length);
+    // A claim only negates this occurrence, never another ingredient elsewhere.
+    const negated = /(?:\bsans|\bexempt(?:e)? de|\bne contient pas(?: de)?|\bfree (?:of|from))(?:\s+d[eu])?\s*$/.test(before)
+      || /^\s*free\b/.test(after);
+    if (!negated) return true;
+  }
+  return false;
+});
 
 export const analyzeProduct = (product: Product, userAllergies: AllergenId[]): AnalysisResult => {
   const detectedAllergens: AllergenId[] = [];
   const detectedTraces: AllergenId[] = [];
-  let hasTextualMatchButNoTag = false;
-  let conflictExplanation = "";
+  const textualMatches: AllergenId[] = [];
+  const base = { detectedAllergens, detectedTraces, textualMatches };
+  const selected = ALLERGENS.filter(allergen => userAllergies.includes(allergen.id));
+  if (!selected.length) return { ...base, status: 'UNCERTAIN', explanation: 'Aucune allergie renseignée : configurez votre profil avant une analyse personnalisée.' };
 
-  const ingredientsLower = (product.ingredientsText || '').toLowerCase();
-  
-  // Helper to check for negation
-  const hasNegation = (keyword: string, text: string) => {
-    const negationPatterns = [
-      new RegExp(`sans\\s+${keyword}`),
-      new RegExp(`${keyword}\\s+free`),
-      new RegExp(`ne\\s+contient\\s+pas\\s+(de\\s+)?${keyword}`),
-      new RegExp(`exempt\\s+de\\s+${keyword}`),
-      new RegExp(`fabriqué\\s+sans\\s+${keyword}`)
-    ];
-    return negationPatterns.some(pattern => pattern.test(text));
+  const ingredients = normalizeIngredientText(product.ingredientsText || '');
+  for (const allergen of selected) {
+    const tagged = product.allergensHierarchy?.some(tag => allergen.offTags.includes(tag.toLowerCase()));
+    const trace = product.tracesTags?.some(tag => allergen.offTags.includes(tag.toLowerCase()));
+    // Coconut and nutmeg are not evidence of tree nuts; remove only these phrases.
+    const text = allergen.id === 'nuts'
+      ? ingredients.replace(/\bnoix de (?:coco|muscade)\b/g, '').replace(/\bcoconut(?:s)?\b/g, '')
+      : ingredients;
+    if (tagged) detectedAllergens.push(allergen.id);
+    if (trace) detectedTraces.push(allergen.id);
+    if (!tagged && !trace && hasUnnegatedMention(text, INGREDIENT_KEYWORDS[allergen.id])) textualMatches.push(allergen.id);
+  }
+  const names = (ids: AllergenId[]) => ALLERGENS.filter(a => ids.includes(a.id)).map(a => a.label).join(', ');
+  if (detectedAllergens.length) return {
+    ...base, status: 'AVOID',
+    explanation: `Allergène(s) signalé(s) dans les données du produit : ${names(detectedAllergens)}. Vérifiez l’étiquette physique.`,
   };
-
-  // Check each user allergy
-  userAllergies.forEach(allergyId => {
-    const allergenDef = ALLERGENS.find(a => a.id === allergyId);
-    if (!allergenDef) return;
-
-    // 1. Check in OFF Tags
-    const isInAllergens = product.allergensHierarchy?.some(tag => 
-      allergenDef.offTags.includes(tag.toLowerCase())
-    );
-
-    // 2. Check in Traces
-    const isInTraces = product.tracesTags?.some(tag => 
-      allergenDef.offTags.includes(tag.toLowerCase())
-    );
-
-    // 3. Text analysis
-    let isTextMatch = false;
-    let isNegated = false;
-
-    if (ingredientsLower) {
-      const keywords = allergenDef.offTags.map(tag => tag.replace(/^(en|fr):/, '').replace(/-/g, ' '));
-      // Add custom keywords if needed, e.g., 'lait' for milk
-      if (allergyId === 'milk') keywords.push('lait', 'beurre', 'crème', 'lactosérum', 'fromage');
-      if (allergyId === 'eggs') keywords.push('oeuf', 'œuf', 'oeufs', 'œufs');
-      if (allergyId === 'peanuts') keywords.push('arachide', 'cacahuète');
-      
-      const foundKeyword = keywords.find(keyword => ingredientsLower.includes(keyword));
-      
-      if (foundKeyword) {
-        if (hasNegation(foundKeyword, ingredientsLower)) {
-          isNegated = true;
-        } else {
-          isTextMatch = true;
-        }
-      }
-    }
-
-    if (isInAllergens) {
-      detectedAllergens.push(allergyId);
-    } else if (isInTraces) {
-      detectedTraces.push(allergyId);
-    } else if (isTextMatch && !isNegated) {
-      hasTextualMatchButNoTag = true;
-      conflictExplanation = `Mention de "${allergenDef.label}" détectée dans le texte des ingrédients, mais non confirmée par les tags officiels.`;
-      // Don't push to detectedAllergens yet, keep it as uncertain
-      if (!detectedTraces.includes(allergyId)) {
-        detectedTraces.push(allergyId); // Treat as trace/uncertain
-      }
-    }
-  });
-
-  const hasPeutContenirText = ingredientsLower.includes('peut contenir') || ingredientsLower.includes('traces éventuelles');
-
-  // Priority 1: Confirmed Allergen
-  if (detectedAllergens.length > 0) {
-    const allergenNames = detectedAllergens.map(id => ALLERGENS.find(a => a.id === id)?.label).join(', ');
-    return {
-      status: 'AVOID',
-      explanation: `Allergène(s) détecté(s) formellement dans ce produit : ${allergenNames}.`,
-      detectedAllergens,
-      detectedTraces,
-    };
-  }
-
-  // Priority 2: Traces or Textual Match
-  if (detectedTraces.length > 0) {
-    const tracesNames = detectedTraces.map(id => ALLERGENS.find(a => a.id === id)?.label).join(', ');
-    return {
-      status: 'UNCERTAIN',
-      explanation: hasTextualMatchButNoTag 
-        ? `${conflictExplanation} Par mesure de précaution (SafeEat), le statut est incertain.`
-        : `Traces potentielles détectées pour : ${tracesNames}.`,
-      detectedAllergens: [],
-      detectedTraces,
-    };
-  }
-
-  // Empty ingredients text without tags
-  if (!product.ingredientsText || product.ingredientsText.trim() === '') {
-    return {
-      status: 'UNCERTAIN',
-      explanation: "La liste des ingrédients n'est pas disponible pour ce produit. Vérifiez l'emballage.",
-      detectedAllergens: [],
-      detectedTraces: [],
-    };
-  }
-
-  // General warning if 'peut contenir' is present but no specific matched trace
-  if (hasPeutContenirText && userAllergies.length > 0) {
-    return {
-      status: 'UNCERTAIN',
-      explanation: "L'étiquette mentionne des 'traces possibles' ou 'peut contenir' des allergènes, prudence.",
-      detectedAllergens: [],
-      detectedTraces: [],
-    };
-  }
-
-  // Priority 3: SAFE
-  return {
-    status: 'SAFE',
-    explanation: "Aucun allergène détecté dans les données disponibles. Restez vigilant.",
-    detectedAllergens: [],
-    detectedTraces: [],
+  if (detectedTraces.length || textualMatches.length) return {
+    ...base, status: 'UNCERTAIN',
+    explanation: [
+      detectedTraces.length ? `Traces signalées : ${names(detectedTraces)}.` : '',
+      textualMatches.length ? `Mentions détectées dans le texte, non confirmées par les tags : ${names(textualMatches)}.` : '',
+      'Vérifiez l’étiquette avant de consommer.',
+    ].filter(Boolean).join(' '),
   };
+  if (!ingredients.trim()) return { ...base, status: 'UNCERTAIN', explanation: 'La liste des ingrédients est absente. Vérifiez l’emballage.' };
+  if (/(?:peut contenir|traces|may contain|atelier utilisant|facility|fabrique dans)/.test(ingredients)) return {
+    ...base, status: 'UNCERTAIN', explanation: 'L’étiquette mentionne des traces ou un risque de contamination. Vérifiez l’emballage.',
+  };
+  if (product.barcode === 'SCAN_OCR') return { ...base, status: 'UNCERTAIN', explanation: 'Aucun allergène du profil repéré sur la photo. Une lecture automatique peut omettre des informations : vérifiez l’étiquette.' };
+  return { ...base, status: 'SAFE', explanation: 'Aucun allergène de votre profil détecté dans les données disponibles. Cela ne garantit pas l’absence d’allergènes : vérifiez l’étiquette.' };
 };
