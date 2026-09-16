@@ -1,8 +1,7 @@
 import React from 'react';
-import { clsx } from 'clsx';
 import { Link } from 'react-router-dom';
 import { AnalysisStatus } from '../../types';
-import { TriangleAlert, CircleHelp, ShieldCheck, FileQuestion } from 'lucide-react';
+import { TriangleAlert, FileQuestion } from 'lucide-react';
 
 interface RecentScanRowProps {
   id: string;
@@ -14,14 +13,14 @@ interface RecentScanRowProps {
 }
 
 export const RecentScanRow: React.FC<RecentScanRowProps> = ({
-  id, barcode, productName, scannedAt, thumbnailUrl, status
+  id, productName, scannedAt, thumbnailUrl, status
 }) => {
 
   const getStatusIcon = () => {
     switch (status) {
       case 'AVOID': return <div className="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center shrink-0" aria-label="À éviter"><span className="text-[18px] font-bold leading-none -mt-[2px]">!</span></div>;
       case 'UNCERTAIN': return <div className="w-8 h-8 rounded-full bg-warning text-white flex items-center justify-center shrink-0" aria-label="Prudence"><TriangleAlert className="w-[18px] h-[18px] stroke-[2.5] fill-warning text-white" /></div>;
-      case 'SAFE': return <div className="w-8 h-8 rounded-full bg-[#A3D627] text-white flex items-center justify-center shrink-0" aria-label="Aucun allergène détecté"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>;
+      case 'SAFE': return <div className="w-8 h-8 rounded-full bg-[#334a00] text-white flex items-center justify-center shrink-0" aria-label="Aucun allergène détecté"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>;
       default: return <div className="w-8 h-8 rounded-full bg-text-tertiary/10 text-text-secondary flex items-center justify-center shrink-0" aria-label="Inconnu"><FileQuestion className="w-4 h-4" /></div>;
     }
   };

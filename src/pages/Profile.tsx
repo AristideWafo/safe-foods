@@ -1,5 +1,4 @@
-import * as LucideIcons from 'lucide-react';
-import React from 'react';
+import { Icon } from '../components/Icon';
 import { useStore } from '../store/useStore';
 import { ALLERGENS } from '../constants/allergens';
 import { AppHeader } from '../components/navigation/AppHeader';
@@ -20,10 +19,10 @@ export const Profile = () => {
         
         <p className="text-[13px] text-text-secondary mb-4">Votre profil et les 50 dernières analyses sont enregistrés uniquement dans ce navigateur, sans synchronisation entre appareils.</p>
         {allergies.length > 0 && <button className="text-[14px] font-bold underline mb-6" onClick={() => { if (window.confirm("Retirer toutes les allergies du profil ? Les analyses seront conservées et recalculées.")) resetProfile(); }}>Réinitialiser mes allergies</button>}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-24">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pb-8">
           {ALLERGENS.map((allergen) => {
             const isSelected = allergies.includes(allergen.id);
-            const IconComponent = React.createElement((LucideIcons as any)[allergen.icon] || React.Fragment);
+            const IconComponent = <Icon name={allergen.icon} />;
             
             return (
               <AllergenChip

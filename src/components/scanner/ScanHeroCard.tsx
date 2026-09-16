@@ -1,7 +1,6 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { Button } from '../primitives/Button';
 
 interface ScanHeroCardProps {
   title?: string;

@@ -17,7 +17,10 @@ async function startServer() {
   } else {
     const client = path.resolve('dist/client');
     app.use(express.static(client));
-    app.get('*', (_req, res) => res.sendFile(path.join(client, 'index.html')));
+    app.get('*', (req, res) => {
+      if (path.extname(req.path)) { res.status(404).send('Fichier introuvable.'); return; }
+      res.sendFile(path.join(client, 'index.html'));
+    });
   }
   const server = app.listen(config.port, config.host, () => {
     console.log(`SafeEat: http://${config.host}:${config.port} (${config.production ? 'production' : 'development'}, photo ${analyzer ? 'configured' : 'disabled'})`);

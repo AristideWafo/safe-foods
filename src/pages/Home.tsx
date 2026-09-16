@@ -1,15 +1,13 @@
-import * as LucideIcons from 'lucide-react';
-import React from 'react';
+import { Icon } from '../components/Icon';
 import { useStore } from '../store/useStore';
-import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, Plus, ScanLine } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { ALLERGENS } from '../constants/allergens';
 import { AppHeader } from '../components/navigation/AppHeader';
 import { ScanHeroCard } from '../components/scanner/ScanHeroCard';
 import { RecentScanRow, RecentScansEmptyState } from '../components/history/RecentScanRow';
 import { SurfaceCard } from '../components/layout/SurfaceCard';
 import { AllergenChip } from '../components/allergies/AllergenChip';
-import { IconButton } from '../components/primitives/IconButton';
 import { Button } from '../components/primitives/Button';
 
 export const Home = () => {
@@ -20,7 +18,7 @@ export const Home = () => {
   const recentHistory = [...history].sort((a, b) => b.date - a.date).slice(0, 3);
 
   return (
-    <div className="flex-1 min-h-full bg-background flex flex-col pb-[calc(74px+max(12px,env(safe-area-inset-bottom)))]">
+    <div className="flex-1 min-h-full bg-background flex flex-col pb-6">
       <AppHeader variant="home" />
 
       <div className="px-6 mt-2 mb-6">
@@ -40,7 +38,7 @@ export const Home = () => {
                 key={allergen.id}
                 id={allergen.id}
                 label={allergen.label}
-                icon={React.createElement((LucideIcons as any)[allergen.icon] || React.Fragment)}
+                icon={<Icon name={allergen.icon} />}
                 selected={true}
                 variant="list"
                 onClick={() => navigate('/profile')}

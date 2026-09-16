@@ -75,8 +75,9 @@ export const Scanner = () => {
   useEffect(() => {
     if (!enabled || analyzing || manual || pendingPhoto) return;
     let live = true;
-    setCamera('starting'); setCameraError(null); setFlashOn(false); setFlashSupported(false);
     void lock(async () => {
+      if (!live) return;
+      setCamera('starting'); setCameraError(null); setFlashOn(false); setFlashSupported(false);
       try {
         if (scannerRef.current?.isScanning) await scannerRef.current.stop();
         if (!live) return;

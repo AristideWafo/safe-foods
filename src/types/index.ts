@@ -16,10 +16,12 @@ export type AllergenId =
 
 export type AnalysisStatus = 'SAFE' | 'AVOID' | 'UNCERTAIN';
 
+export type AllergenIconName = 'Wheat' | 'Shrimp' | 'Egg' | 'Fish' | 'NutOff' | 'Sprout' | 'Milk' | 'Nut' | 'Leaf' | 'Droplet' | 'CircleDot' | 'TestTube' | 'Flower2' | 'Shell';
+
 export interface AllergenDef {
   id: AllergenId;
   label: string;
-  icon: string; // lucide icon name
+  icon: AllergenIconName;
   offTags: string[]; // OpenFoodFacts tags to match (en or fr)
 }
 

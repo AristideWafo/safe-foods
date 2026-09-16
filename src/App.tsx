@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
-import { Profile } from './pages/Profile';
-import { Scanner } from './pages/Scanner';
-import { Result } from './pages/Result';
-import { History } from './pages/History';
-import { NotFound } from './pages/NotFound';
+const Profile = lazy(() => import('./pages/Profile').then(module => ({ default: module.Profile })));
+const Scanner = lazy(() => import('./pages/Scanner').then(module => ({ default: module.Scanner })));
+const Result = lazy(() => import('./pages/Result').then(module => ({ default: module.Result })));
+const History = lazy(() => import('./pages/History').then(module => ({ default: module.History })));
+const NotFound = lazy(() => import('./pages/NotFound').then(module => ({ default: module.NotFound })));
 
 export default function App() {
   return (
