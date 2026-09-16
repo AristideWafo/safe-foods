@@ -161,3 +161,9 @@ Dans « Ajouter mon allergène », le badge bleu avec l’icône d’étincelles
 La réponse est `{ "synonyms": ["kiwifruit", "actinidia deliciosa"] }`. Les noms sont nettoyés, dédupliqués, limités à 19 propositions de 60 caractères maximum. L’utilisateur peut modifier un tag, le supprimer ou le retenir avec « + ». Seuls les noms retenus, ainsi que ceux saisis manuellement, sont enregistrés localement avec « Ajouter et activer ». Les propositions restantes sont ignorées. Une absence de suggestions est un résultat valide ; en cas d’erreur ou sans clé API, la saisie manuelle reste disponible.
 
 Ces propositions ne sont pas exhaustives et peuvent être inexactes ; elles ne changent pas les limites du moteur pour les allergènes personnalisés. Les deux routes IA partagent les limites de fréquence, de concurrence et le budget quotidien. L’API renvoie des erreurs JSON pour un nom invalide (400), des propositions invalides (422), un quota atteint (429), un fournisseur indisponible (503) ou un délai dépassé (504).
+
+## Preview Vercel
+
+`vercel.json` publie `dist/client` et dirige `/api/*` vers la fonction Express `api/index.ts`. Les routes React (par exemple `/profile`) utilisent le repli vers `index.html`, qui exclut les routes API. Le serveur local et la fonction utilisent la même configuration.
+
+Configurer `GEMINI_API_KEY` dans l’environnement **Preview** du projet Vercel, ainsi que `GEMINI_MODEL` si nécessaire, puis redéployer. La clé reste côté serveur et ne doit pas être préfixée par `VITE_`. `/api/health` doit renvoyer du JSON ; `/api/suggest-synonyms` doit renvoyer une erreur JSON explicite si la clé manque, jamais une page 404 statique. Les quotas en mémoire sont propres à chaque instance : ils ne constituent pas une limite globale persistante sur Vercel. Le corps d’une requête reste également soumis à la limite de la plateforme, notamment pour les photos.
