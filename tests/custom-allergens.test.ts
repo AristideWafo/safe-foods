@@ -25,7 +25,7 @@ test('custom creation activates the restriction, recalculates scans and rejects 
   const kiwi = state.customAllergens.find(a => a.label === 'Kiwi')!;
   assert.ok(state.allergies.includes(kiwi.id));
   assert.ok(state.history[0].result.textualMatches?.includes(kiwi.id));
-  assert.equal(state.history[0].result.status, 'UNCERTAIN');
+  assert.equal(state.history[0].result.status, 'AVOID');
   assert.throws(() => state.addCustomAllergen('KIWI'), /existe déjà/);
   assert.throws(() => state.addCustomAllergen('Lait'), /existe déjà/);
   assert.throws(() => state.addCustomAllergen(''), /2 à 60/);

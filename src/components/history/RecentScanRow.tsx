@@ -13,7 +13,7 @@ export const RecentScanRow: React.FC<RecentScanRowProps> = ({ id, productName, s
   const result = scan?.result;
   const currentStatus = result?.status || status;
   const tone = currentStatus === 'AVOID' ? 'danger' : currentStatus === 'SAFE' ? 'safe' : 'caution';
-  const verdict = currentStatus === 'AVOID' ? 'À éviter' : currentStatus === 'SAFE' ? 'Aucun détecté' : 'À vérifier';
+  const verdict = currentStatus === 'AVOID' ? 'À éviter' : currentStatus === 'SAFE' ? 'Aucune correspondance' : 'À vérifier';
   const allergens = getAllergenDefinitions(customAllergens).filter(allergen => result && [...result.detectedAllergens, ...result.detectedTraces, ...(result.textualMatches || [])].includes(allergen.id));
   const allergenLabel = allergens.length ? `${result?.detectedTraces.length && !result.detectedAllergens.length ? 'Traces : ' : ''}${allergens.map(allergen => allergen.label).join(', ')}` : currentStatus === 'SAFE' ? 'Selon votre profil' : 'Données incertaines';
   const description = [scan?.product.brand, scan?.product.quantity].filter(Boolean).join(' • ') || (scan?.product.source === 'photo' ? 'Photo des ingrédients' : 'Fiche Open Food Facts');

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, TriangleAlert, ChevronDown, Eye, RefreshCw, Info, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, TriangleAlert, ChevronDown, Eye, RefreshCw, Info, Link as LinkIcon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import type { Product, AnalysisResult } from '../types';
 import { getAllergenDefinitions } from '../constants/customAllergens';
@@ -39,22 +39,26 @@ export const Result = () => {
   </div>;
   if (!scan) return <div className="flex-1 flex flex-col items-center justify-center gap-4" role="status" aria-live="polite"><RefreshCw className="animate-spin w-10 h-10 text-primary-500" /><p>Recherche du produit…</p></div>;
   const result = analyzeProduct(scan.product, allergies, customAllergens);
-  return <ResultView product={scan.product} result={result} onBack={() => navigate('/')} onScan={() => navigate('/scanner')} onProfile={() => navigate('/profile')} profileEmpty={!allergies.length} />;
+  return <ResultView key={scan.id} product={scan.product} result={result} onBack={() => navigate('/')} onScan={() => navigate('/scanner')} onCheckLabel={() => navigate('/scanner', { state: { referenceScanId: scan.id } })} onProfile={() => navigate('/profile')} profileEmpty={!allergies.length} onVerify={() => {
+    const product = { ...scan.product, labelVerified: true, verifiedAt: Date.now(), labelReadable: true, ingredientsComplete: true, warningsComplete: true, language: 'fr' };
+    navigate(`/scan/${recordScan(product)}`);
+  }} />;
 };
 
-export const ResultView = ({ product, result, onBack, onScan, onProfile, profileEmpty }: {
-  product: Product; result: AnalysisResult; onBack: () => void; onScan: () => void; onProfile: () => void; profileEmpty: boolean;
+export const ResultView = ({ product, result, onBack, onScan, onProfile, profileEmpty, onVerify, onCheckLabel }: {
+  product: Product; result: AnalysisResult; onBack: () => void; onScan: () => void; onProfile: () => void; profileEmpty: boolean; onVerify?: () => void; onCheckLabel?: () => void;
 }) => {
+  const [checks, setChecks] = useState([false, false, false]);
   const theme = result.status === 'AVOID' ? { title: 'À ÉVITER', bg: 'var(--gradient-danger)' }
-    : result.status === 'UNCERTAIN' ? { title: 'PRUDENCE', bg: 'var(--amber-400)' }
-    : { title: 'AUCUN DÉTECTÉ', bg: 'linear-gradient(135deg, #006e2f, #007432)' };
+    : result.status === 'UNCERTAIN' ? { title: 'À VÉRIFIER', bg: 'var(--amber-400)' }
+    : { title: 'AUCUNE CORRESPONDANCE', bg: 'var(--information)' };
   return <div className="flex-1 min-h-0 h-full flex flex-col bg-background overflow-y-auto">
     <div className="shrink-0 flex gap-3 items-center px-5 pt-[max(16px,env(safe-area-inset-top))] pb-5"><IconButton icon={<ArrowLeft />} onClick={onBack} aria-label="Retour à l’accueil" /><h1 className="font-display font-bold text-[22px]">Résultat du scan</h1></div>
     <header className={`shrink-0 mx-5 rounded-[28px] px-6 py-7 ${result.status === 'UNCERTAIN' ? 'text-amber-950' : 'text-white'}`} style={{ background: theme.bg }}>
       <button onClick={onProfile} className="block mx-auto rounded-full bg-[#101827] text-white text-[13px] font-bold px-4 py-2 mb-6">{profileEmpty ? 'PROFIL À CONFIGURER' : 'PROFIL : ALLERGIES ACTIVES'}</button>
       <div className="flex flex-col items-center gap-3">
-        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-verified">{result.status === 'SAFE' ? <ShieldCheck className="w-12 h-12" /> : <TriangleAlert className="w-12 h-12 text-danger" />}</div>
-        <h2 className="text-[28px] font-display font-extrabold">{theme.title}</h2>
+        <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-information">{result.status === 'SAFE' ? <Eye className="w-12 h-12" /> : <TriangleAlert className="w-12 h-12 text-danger" />}</div>
+        <h2 className="text-[28px] text-center font-display font-extrabold">{theme.title}</h2>
         <p className="font-bold text-center break-words">{product.name}</p>
         {product.imageUrl && <img src={product.imageUrl} alt={product.name} className="h-28 w-28 object-contain rounded-2xl bg-white p-2 mt-2" />}
       </div>
@@ -64,10 +68,25 @@ export const ResultView = ({ product, result, onBack, onScan, onProfile, profile
       <p className="text-[15px] leading-relaxed" role="status">{result.explanation}</p>
       {profileEmpty && <Button fullWidth onClick={onProfile}>Configurer mes allergies</Button>}
       <EvidenceAccordion product={product} result={result} />
+      {onCheckLabel && <Button fullWidth variant="secondary" onClick={onCheckLabel}>Vérifier ce produit avec une photo</Button>}
+      {product.comparison && <section className="rounded-xl bg-background p-4 space-y-2 text-sm"><h2 className="font-bold">Observation précédente conservée</h2><p>{product.comparison.name} · {product.comparison.source} · {formatDate(product.comparison.fetchedAt)}</p><p className="whitespace-pre-wrap break-words">{product.comparison.ingredientsText}</p><p className="whitespace-pre-wrap break-words">{product.comparison.warningsText}</p><p>{product.sourceConflict ? 'Les données divergent. Aucune fusion ni validation automatique ; vérifiez les deux observations et l’emballage.' : 'Les textes concordent, mais leur accord ne prouve pas la sécurité du produit.'}</p></section>}
+      {!!result.qualityIssues?.length && <section className="rounded-xl bg-background p-4 text-sm" aria-label="Limites de l’analyse"><h2 className="font-bold mb-2">Ce qui empêche de conclure</h2><ul className="list-disc pl-5 space-y-1">{result.qualityIssues.map(issue => <li key={issue}>{issue}</li>)}</ul></section>}
+      {onVerify && !product.labelVerified && !product.sourceConflict && !!product.ingredientsText.trim() && <section className="rounded-xl bg-background p-4 space-y-3 text-sm">
+        <h2 className="font-bold">Relire l’étiquette réelle</h2>
+        <p>Ne confirmez que si les textes affichés correspondent exactement à votre emballage. Une relecture n’est pas une garantie de sécurité. S’il manque une ligne ou un avertissement, reprenez une photo ; ne confirmez pas.</p>
+        {[
+          'J’ai vérifié l’identité du produit et l’étiquette est en français.',
+          'Le texte affiché contient toute la liste lisible des ingrédients, du début à la fin.',
+          'J’ai vérifié toutes les zones d’avertissements : leurs mentions figurent dans les textes affichés, ou il n’y en a aucune sur l’emballage.',
+        ].map((label, index) => <label key={label} className="flex gap-3 items-start"><input type="checkbox" checked={checks[index]} onChange={event => setChecks(old => old.map((v, i) => i === index ? event.target.checked : v))} /><span>{label}</span></label>)}
+        <Button fullWidth disabled={!checks.every(Boolean)} onClick={onVerify}>Enregistrer une relecture séparée</Button>
+      </section>}
       <div className="rounded-[24px] bg-[#f4ede3] p-4 text-[13px] leading-relaxed">
         <h2 className="font-bold text-[15px] flex gap-2 items-center"><Info className="w-5 h-5" />Source et consultation</h2>
         <p>{product.source === 'photo' || product.barcode === 'SCAN_OCR' ? 'Lecture automatique de votre photo par Google Gemini.' : 'Fiche collaborative Open Food Facts.'}</p>
         <p>Consultation : {formatDate(product.fetchedAt)}</p>
+        {product.verifiedAt && <p>Relecture utilisateur : {formatDate(product.verifiedAt)}</p>}
+        <p>Moteur : {result.engineVersion || 'non renseigné'} · Dictionnaire : {result.dictionaryVersion || 'non renseigné'}</p>
         {product.source !== 'photo' && product.barcode !== 'SCAN_OCR' && <>
           <p>Mise à jour de la fiche : {formatDate(product.updatedAt)}</p>
           <a href={`https://world.openfoodfacts.org/product/${encodeURIComponent(product.barcode)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-bold underline mt-2"><LinkIcon className="w-4 h-4" />Voir la fiche produit</a>
@@ -90,7 +109,14 @@ export const EvidenceAccordion = ({ result, product }: { result: AnalysisResult;
   return <details className="rounded-[24px] bg-white" open={result.status !== 'SAFE'}>
     <summary className="flex justify-between items-center cursor-pointer font-bold focus-visible:outline-primary-500"><span className="flex items-center gap-2"><Eye className="w-5 h-5 text-violet-600" />Voir les preuves</span><ChevronDown className="w-5 h-5" /></summary>
     <div className="pt-4 space-y-4">
-      {all.map(a => <div key={a.id} className="rounded-[24px] bg-[#f5f0ff] p-4 space-y-2">
+      {result.evidence?.map((proof, index) => <div key={index} className="rounded-xl bg-[#f5f0ff] p-4 space-y-2 text-sm">
+        <h3 className="font-bold">{getAllergenDefinitions(customAllergens).find(a => a.id === proof.allergen)?.label}</h3>
+        <p>{({ declared: 'Allergène signalé par un tag', ingredient: 'Mention trouvée dans le texte des ingrédients', possible_presence: 'Avertissement de présence possible — pas une trace confirmée', facility: 'Avertissement d’atelier — risque non quantifié', ambiguous: 'Mention ambiguë — origine ou contexte à vérifier', claim: 'Mention « sans » — ne prouve pas l’absence' })[proof.kind]}</p>
+        <p>Source : {({ ingredients: 'texte des ingrédients', warnings: 'texte des avertissements', allergen_tags: 'tags allergènes de la source', trace_tags: 'tags de présence possible de la source' })[proof.source]}</p>
+        {proof.quote ? <blockquote className="border-l-2 pl-3 whitespace-pre-wrap break-words">« {proof.quote} »</blockquote> : <p>La source fournit un tag sans phrase justificative.</p>}
+        <p className="text-text-secondary">Règle : {proof.rule}</p>
+      </div>)}
+      {!result.evidence && all.map(a => <div key={a.id} className="rounded-[24px] bg-[#f5f0ff] p-4 space-y-2">
         <span className="inline-block rounded-full bg-information text-white px-3 py-1 text-[13px] font-bold">{result.detectedTraces.includes(a.id) ? 'TRACES' : 'INGRÉDIENT'}</span>
         <h3 className="font-bold">{a.label}</h3>
         {result.detectedAllergens.includes(a.id) && <p className="text-[13px]">{photo ? 'Ingrédient repéré par lecture automatique de la photo, à vérifier.' : 'Allergène signalé dans les tags Open Food Facts.'}</p>}
@@ -98,6 +124,7 @@ export const EvidenceAccordion = ({ result, product }: { result: AnalysisResult;
         {result.textualMatches?.includes(a.id) && <p className="text-[13px]">Mention trouvée dans le texte des ingrédients, sans confirmation par les tags.</p>}
       </div>)}
       <div className="bg-background rounded-xl p-4"><h3 className="font-bold text-[14px] mb-2">Ingrédients et avertissements disponibles</h3><p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words">{product.ingredientsText || 'Liste non disponible : vérifiez l’emballage.'}</p></div>
+      <div className="bg-background rounded-xl p-4"><h3 className="font-bold text-sm mb-2">Avertissements séparés disponibles</h3><p className="text-sm whitespace-pre-wrap break-words">{product.warningsText || 'Aucun texte fourni par la source : ce n’est pas une preuve d’absence.'}</p></div>
     </div>
   </details>;
 };

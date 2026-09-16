@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { analyzeProduct } from '../src/services/AnalysisEngine';
 import request from 'supertest';
 import { createApp } from '../server/app';
 import { MAX_IMAGE_BYTES } from '../server/image';
@@ -15,8 +16,18 @@ test('MIME mismatch rejected', async () => assert.equal((await request(app()).po
 test('photo requires explicit consent', async () => { const r = await request(app()).post('/api/analyze-image').send({ imageBase64 }); assert.equal(r.status, 400); assert.equal(r.body.error.code, 'PHOTO_CONSENT_REQUIRED'); });
 test('unconfigured photo has actionable error', async () => { const r = await request(createApp()).post('/api/analyze-image').send(payload); assert.equal(r.status, 503); assert.equal(r.body.error.code, 'AI_NOT_CONFIGURED'); });
 test('valid analysis contains provenance', async () => { const r = await request(app()).post('/api/analyze-image').send(payload); assert.equal(r.status, 200); assert.equal(r.body.ingredientsText, answer.ingredientsText); assert.equal(r.body.source, 'photo'); assert.equal(r.body.analysisModel, 'test-model'); assert.equal(typeof r.body.fetchedAt, 'number'); });
-for (const raw of [{}, { ...answer, ingredientsComplete: false }, { ...answer, allergensHierarchy: ['en:unknown'] }, { ...answer, ingredientsText: '' }, null]) test(`unusable provider response rejected: ${JSON.stringify(raw)}`, async () => assert.equal((await request(createApp({ analyzer: async () => raw })).post('/api/analyze-image').send(payload)).status, 422));
+for (const raw of [{}, { ...answer, ingredientsComplete: 'yes' }, { ...answer, allergensHierarchy: ['en:unknown'] }, { ...answer, ingredientsText: '' }, null]) test(`unusable provider response rejected: ${JSON.stringify(raw)}`, async () => assert.equal((await request(createApp({ analyzer: async () => raw })).post('/api/analyze-image').send(payload)).status, 422));
 test('provider exception is sanitized', async () => { const r = await request(createApp({ analyzer: async () => { throw new Error('secret-key'); } })).post('/api/analyze-image').send(payload); assert.equal(r.status, 503); assert.doesNotMatch(JSON.stringify(r.body), /secret-key/); });
+test('partial photo retains a positive alert through the API', async () => {
+  const r = await request(createApp({ analyzer: async () => ({ ...answer, labelReadable: false, ingredientsComplete: false }) })).post('/api/analyze-image').send(payload);
+  assert.equal(r.status, 200); assert.equal(r.body.ingredientsComplete, false); assert.equal(r.body.labelVerified, false);
+  assert.equal(analyzeProduct({ ...r.body, barcode: 'SCAN_OCR', name: 'Photo' }, ['milk']).status, 'AVOID');
+});
+test('complete model extraction without user review remains inconclusive', async () => {
+  const r = await request(createApp({ analyzer: async () => ({ ...answer, ingredientsText: 'sucre', allergensHierarchy: [], warningsComplete: true, language: 'fr' }) })).post('/api/analyze-image').send(payload);
+  assert.equal(r.status, 200);
+  assert.equal(analyzeProduct({ ...r.body, barcode: 'SCAN_OCR', name: 'Photo' }, ['milk']).status, 'UNCERTAIN');
+});
 test('deadline aborts request', async () => {
   let signal: AbortSignal | undefined;
   const r = await request(createApp({ timeoutMs: 20, analyzer: async (_image, s) => { signal = s; return new Promise(() => {}); } })).post('/api/analyze-image').send(payload);

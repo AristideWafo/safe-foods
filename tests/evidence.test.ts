@@ -14,3 +14,15 @@ test('missing update date is not fabricated', () => {
   const html = renderToStaticMarkup(createElement(ResultView, { product, result: analyzeProduct(product, []), onBack: () => {}, onScan: () => {}, onProfile: () => {}, profileEmpty: true }));
   assert.match(html, /non renseignée/); assert.match(html, /Configurer mes allergies/); assert.doesNotMatch(html, /aujourd.hui/);
 });
+test('review requires explicit checks and a separate observation', () => {
+  const html = renderToStaticMarkup(createElement(ResultView, { product, result: analyzeProduct(product, ['milk']), onBack: () => {}, onScan: () => {}, onProfile: () => {}, onVerify: () => {}, profileEmpty: false }));
+  assert.equal((html.match(/type="checkbox"/g) || []).length, 3);
+  assert.match(html, /disabled=""[^>]*>Enregistrer une relecture séparée/);
+  assert.match(html, /Ce qui empêche de conclure/);
+  assert.match(html, /Aucun texte fourni par la source/);
+});
+test('unresolved conflict offers no simple confirmation', () => {
+  const p = { ...product, sourceConflict: true };
+  const html = renderToStaticMarkup(createElement(ResultView, { product: p, result: analyzeProduct(p, ['milk']), onBack: () => {}, onScan: () => {}, onProfile: () => {}, onVerify: () => {}, profileEmpty: false }));
+  assert.doesNotMatch(html, /Enregistrer une relecture séparée/);
+});

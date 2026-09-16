@@ -40,7 +40,16 @@ export interface Product {
   ingredientsText: string;
   allergensHierarchy: string[];
   tracesTags: string[];
-  source?: "openfoodfacts" | "photo";
+  source?: "openfoodfacts" | "photo" | "label";
+  warningsText?: string;
+  language?: string;
+  labelReadable?: boolean;
+  ingredientsComplete?: boolean;
+  warningsComplete?: boolean;
+  labelVerified?: boolean;
+  verifiedAt?: number;
+  sourceConflict?: boolean;
+  comparison?: { name: string; ingredientsText: string; warningsText: string; source?: string; fetchedAt?: number };
   fetchedAt?: number;
   updatedAt?: number;
   analysisModel?: string;
@@ -52,6 +61,18 @@ export interface AnalysisResult {
   detectedAllergens: AllergenId[];
   detectedTraces: AllergenId[];
   textualMatches?: AllergenId[];
+  evidence?: AnalysisEvidence[];
+  qualityIssues?: string[];
+  engineVersion?: string;
+  dictionaryVersion?: string;
+}
+
+export interface AnalysisEvidence {
+  allergen: AllergenId;
+  kind: 'declared' | 'ingredient' | 'possible_presence' | 'facility' | 'ambiguous' | 'claim';
+  source: 'ingredients' | 'warnings' | 'allergen_tags' | 'trace_tags';
+  quote?: string;
+  rule: string;
 }
 
 export interface ScanHistoryItem {
@@ -60,6 +81,8 @@ export interface ScanHistoryItem {
   barcode: string;
   product: Product;
   allergiesAtScan?: AllergenId[];
+  engineVersionAtScan?: string;
+  dictionaryVersionAtScan?: string;
   result: AnalysisResult;
   isFavorite?: boolean;
 }

@@ -19,6 +19,6 @@ export const analyzePhoto = async (imageBase64: string, signal: AbortSignal): Pr
   if (!response.ok) throw new Error(isRecord(data) && isRecord(data.error) && typeof data.error.message === 'string' ? data.error.message : 'Analyse photo indisponible.');
   if (!isRecord(data)) throw new Error('Les données de la photo sont invalides.');
   const product = parseProduct({ ...data, barcode: 'SCAN_OCR', name: 'Produit (analyse photo)' });
-  if (!product || !product.ingredientsText.trim()) throw new Error('Les ingrédients sont illisibles. Reprenez une photo nette de toute la liste.');
+  if (!product || (!product.ingredientsText.trim() && !product.warningsText?.trim())) throw new Error('Les ingrédients sont illisibles. Reprenez une photo nette de toute la liste.');
   return product;
 };

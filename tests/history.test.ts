@@ -27,6 +27,7 @@ test('photo restored from persisted storage after rehydration', async () => {
   await useStore.persist.rehydrate();
   const restored = useStore.getState().history.find(item => item.id === id);
   assert.equal(restored?.product.barcode, 'SCAN_OCR'); assert.equal(restored?.result.status, 'AVOID');
+  assert.equal(restored?.engineVersionAtScan, '2.0.0'); assert.equal(restored?.dictionaryVersionAtScan, '2026-09-16.1');
 });
 test('favorites toggle without changing the analysis and survive rehydration', async () => {
   useStore.setState({ allergies: ['milk'], history: [] });

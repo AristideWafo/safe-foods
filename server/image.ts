@@ -20,10 +20,20 @@ export const parseAnalysis = (value: unknown) => {
   const unreadable = () => new ApiError(422, 'IMAGE_UNREADABLE', 'La liste complète des ingrédients n’est pas suffisamment lisible. Photographiez l’étiquette entière.', true);
   if (!value || typeof value !== 'object') throw unreadable();
   const data = value as Record<string, unknown>;
-  if (data.labelReadable !== true || data.ingredientsComplete !== true || typeof data.ingredientsText !== 'string' || !data.ingredientsText.trim() || data.ingredientsText.length > 50000) throw unreadable();
+  if (typeof data.labelReadable !== 'boolean' || typeof data.ingredientsComplete !== 'boolean' || typeof data.ingredientsText !== 'string' || data.ingredientsText.length > 50000) throw unreadable();
+  if (data.warningsText !== undefined && (typeof data.warningsText !== 'string' || data.warningsText.length > 50000)) throw unreadable();
+  if (data.warningsComplete !== undefined && typeof data.warningsComplete !== 'boolean') throw unreadable();
+  if (data.language !== undefined && (typeof data.language !== 'string' || data.language.length > 20)) throw unreadable();
+  if (!data.ingredientsText.trim() && !(typeof data.warningsText === 'string' && data.warningsText.trim())) throw unreadable();
   const parseTags = (tags: unknown) => {
     if (!Array.isArray(tags) || tags.length > 100 || !tags.every(tag => typeof tag === 'string' && allowedTags.has(tag))) throw unreadable();
     return [...new Set(tags as string[])];
   };
-  return { ingredientsText: data.ingredientsText.trim(), allergensHierarchy: parseTags(data.allergensHierarchy), tracesTags: parseTags(data.tracesTags) };
+  return {
+    ingredientsText: data.ingredientsText.trim(), allergensHierarchy: parseTags(data.allergensHierarchy), tracesTags: parseTags(data.tracesTags),
+    warningsText: typeof data.warningsText === 'string' ? data.warningsText.trim() : '',
+    labelReadable: data.labelReadable, ingredientsComplete: data.ingredientsComplete,
+    warningsComplete: data.warningsComplete === true, language: typeof data.language === 'string' ? data.language : undefined,
+    labelVerified: false,
+  };
 };

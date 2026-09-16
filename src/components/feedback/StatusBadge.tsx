@@ -29,7 +29,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md', c
         bg: 'bg-verified/10',
         text: 'text-verified',
         icon: <ShieldCheck />,
-        label: isHero ? 'AUCUN ALLERGÈNE DÉTECTÉ' : 'Aucun détecté'
+        label: isHero ? 'AUCUNE CORRESPONDANCE' : 'Aucune correspondance'
       };
       default: return {
         bg: 'bg-text-tertiary/10',

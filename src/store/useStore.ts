@@ -36,7 +36,10 @@ export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergi
     if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.date !== 'number' || !Number.isFinite(entry.date)) continue;
     const product = parseProduct(entry.product);
     if (!product || history.some(scan => scan.id === entry.id)) continue;
-    history.push({ id: entry.id, date: entry.date, barcode: product.barcode, product, result: analyzeProduct(product, allergies, customAllergens), allergiesAtScan: Array.isArray(entry.allergiesAtScan) ? parseAllergies(entry.allergiesAtScan, customAllergens) : undefined, isFavorite: entry.isFavorite === true });
+    history.push({ id: entry.id, date: entry.date, barcode: product.barcode, product, result: analyzeProduct(product, allergies, customAllergens),
+      engineVersionAtScan: typeof entry.engineVersionAtScan === 'string' ? entry.engineVersionAtScan : undefined,
+      dictionaryVersionAtScan: typeof entry.dictionaryVersionAtScan === 'string' ? entry.dictionaryVersionAtScan : undefined,
+      allergiesAtScan: Array.isArray(entry.allergiesAtScan) ? parseAllergies(entry.allergiesAtScan, customAllergens) : undefined, isFavorite: entry.isFavorite === true });
     if (history.length === 50) break;
   }
   const settings = isRecord(state.preferences) ? state.preferences : {};
@@ -68,7 +71,9 @@ export const useStore = create<SafeEatState>()(persist((set, get) => ({
   recordScan: product => {
     const id = crypto.randomUUID();
     const allergies = [...get().allergies];
-    get().addHistoryItem({ id, date: Date.now(), barcode: product.barcode, product, result: analyzeProduct(product, allergies, get().customAllergens), allergiesAtScan: allergies });
+    const result = analyzeProduct(product, allergies, get().customAllergens);
+    get().addHistoryItem({ id, date: Date.now(), barcode: product.barcode, product, result,
+      engineVersionAtScan: result.engineVersion, dictionaryVersionAtScan: result.dictionaryVersion, allergiesAtScan: allergies });
     return id;
   },
   clearHistory: () => set({ history: [] }),

@@ -27,7 +27,7 @@ export const History = () => {
     const date = new Date(scan.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     groups.set(date, [...(groups.get(date) || []), scan]);
   }
-  const filters = [{ id: 'ALL', label: 'Tous' }, { id: 'AVOID', label: 'À éviter' }, { id: 'SAFE', label: 'Aucun détecté' }, { id: 'UNCERTAIN', label: 'À vérifier' }, { id: 'FAVORITES', label: '★ Favoris' }] as const;
+  const filters = [{ id: 'ALL', label: 'Tous' }, { id: 'AVOID', label: 'À éviter' }, { id: 'SAFE', label: 'Aucune correspondance' }, { id: 'UNCERTAIN', label: 'À vérifier' }, { id: 'FAVORITES', label: '★ Favoris' }] as const;
 
   return (
     <div className="guardian-ambient flex-1 min-h-full pb-8 bg-background flex flex-col">

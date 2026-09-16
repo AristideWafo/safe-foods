@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, Loader2, ArrowLeft, MoreVertical, Scan, Image as ImageIcon, Keyboard, Zap, ZapOff } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { fetchProductByBarcode } from '../services/OpenFoodFacts';
@@ -13,6 +13,8 @@ import { ManualBarcodeForm } from '../components/scanner/ManualBarcodeSheet';
 import { BottomSheet } from '../components/layout/BottomSheet';
 import { analyzeProduct } from '../services/AnalysisEngine';
 import { signalScanRisk } from '../services/ScanFeedback';
+import { compareLabelObservation } from '../services/LabelComparison';
+import { isRecord } from '../services/ProductValidation';
 
 const cameraFrame = (): string | null => {
   const video = document.querySelector<HTMLVideoElement>('#reader-container video');
@@ -28,6 +30,9 @@ const cameraFrame = (): string | null => {
 type CameraState = 'idle' | 'starting' | 'running' | 'error';
 export const Scanner = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const referenceScanId = isRecord(location.state) && typeof location.state.referenceScanId === 'string' ? location.state.referenceScanId : undefined;
+  const reference = useStore(state => state.history.find(scan => scan.id === referenceScanId)?.product);
   const { allergies, customAllergens, recordScan } = useStore();
   const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const [options, setOptions] = useState(false);
@@ -130,7 +135,7 @@ export const Scanner = () => {
     if (!toManual) setCameraAttempt(value => value + 1);
   };
   const result = completed ? analyzeProduct(completed.product, allergies, customAllergens) : null;
-  const statusLabel = result?.status === 'AVOID' ? 'À éviter' : result?.status === 'SAFE' ? 'Aucun allergène détecté' : 'À vérifier';
+  const statusLabel = result?.status === 'AVOID' ? 'À éviter' : result?.status === 'SAFE' ? 'Aucune correspondance identifiée' : 'À vérifier';
   return <div className="scanner-screen flex-1 min-h-0 flex flex-col bg-background text-text-primary overflow-y-auto">
     <header className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
       <IconButton icon={<ArrowLeft />} className="rounded-full border border-black/5" onClick={() => navigate('/')} aria-label="Fermer le scanner" />
@@ -181,7 +186,11 @@ export const Scanner = () => {
     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choisir une photo des ingrédients" className="hidden" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) importPhoto(file); }} />
     <BottomSheet isOpen={!!pendingPhoto} onClose={() => setPendingPhoto(undefined)} title="Analyser cette photo ?">
       <p className="text-text-secondary leading-relaxed mb-4">La photo sera envoyée à Google Gemini pour lire les ingrédients. SafeEat ne conserve pas la photo sur son serveur. Évitez les informations personnelles et photographiez toute l’étiquette.</p>
-      <Button fullWidth onClick={() => { const load = pendingPhoto; setPendingPhoto(undefined); if (load) void run(async signal => analyzePhoto(await load(), signal)); }}>Envoyer cette photo et analyser</Button>
+      {reference && <p className="text-sm mb-4">Vérification de « {reference.name} ». Photographiez ce même produit. Les différences avec l’analyse précédente seront conservées et signalées.</p>}
+      <Button fullWidth onClick={() => { const load = pendingPhoto; setPendingPhoto(undefined); if (load) void run(async signal => {
+        const photo = await analyzePhoto(await load(), signal);
+        return reference ? compareLabelObservation(reference, photo) : photo;
+      }); }}>Envoyer cette photo et analyser</Button>
       <Button fullWidth variant="ghost" onClick={() => setPendingPhoto(undefined)}>Annuler</Button>
     </BottomSheet>
   </div>;
