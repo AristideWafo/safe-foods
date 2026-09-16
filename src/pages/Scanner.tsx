@@ -9,9 +9,10 @@ import { preparePhoto, analyzePhoto } from '../services/Photo';
 import type { Product } from '../types';
 import { Button } from '../components/primitives/Button';
 import { IconButton } from '../components/primitives/IconButton';
-import { ManualBarcodeSheet } from '../components/scanner/ManualBarcodeSheet';
+import { ManualBarcodeForm } from '../components/scanner/ManualBarcodeSheet';
 import { BottomSheet } from '../components/layout/BottomSheet';
 import { analyzeProduct } from '../services/AnalysisEngine';
+import { signalScanRisk } from '../services/ScanFeedback';
 
 const cameraFrame = (): string | null => {
   const video = document.querySelector<HTMLVideoElement>('#reader-container video');
@@ -27,17 +28,18 @@ const cameraFrame = (): string | null => {
 type CameraState = 'idle' | 'starting' | 'running' | 'error';
 export const Scanner = () => {
   const navigate = useNavigate();
-  const { allergies, recordScan } = useStore();
+  const { allergies, customAllergens, recordScan } = useStore();
   const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const [options, setOptions] = useState(false);
   const [completed, setCompleted] = useState<{ id: string; product: Product } | null>(null);
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(true);
   const [cameraAttempt, setCameraAttempt] = useState(0);
   const [camera, setCamera] = useState<CameraState>('idle');
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
+  const [barcodeValue, setBarcodeValue] = useState('');
   const [flashSupported, setFlashSupported] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<() => Promise<string>>();
@@ -75,6 +77,8 @@ export const Scanner = () => {
       if (!mounted.current || controller.signal.aborted) return;
       if (!product) throw new Error('Produit introuvable. Photographiez les ingrédients ou vérifiez le code.');
       setCompleted({ id: recordScan(product), product });
+      const currentProfile = useStore.getState();
+      signalScanRisk(analyzeProduct(product, currentProfile.allergies, currentProfile.customAllergens), currentProfile.preferences);
     } catch (err) {
       if (mounted.current) setError(controller.signal.aborted ? 'La demande a été interrompue ou a pris trop de temps. Réessayez.' : err instanceof Error ? err.message : 'L’analyse a échoué. Réessayez.');
     } finally {
@@ -119,37 +123,45 @@ export const Scanner = () => {
     if (!data) { fileRef.current?.click(); return; }
     setFrozenFrame(data); setPendingPhoto(() => async () => data);
   };
-  const result = completed ? analyzeProduct(completed.product, allergies) : null;
+  const switchMode = (toManual: boolean) => {
+    blockedRef.current = toManual || !!pendingPhoto || !!completed;
+    setManual(toManual); setEnabled(!toManual); setCamera('idle');
+    setCameraError(null); setError(null); setFrozenFrame(null);
+    if (!toManual) setCameraAttempt(value => value + 1);
+  };
+  const result = completed ? analyzeProduct(completed.product, allergies, customAllergens) : null;
   const statusLabel = result?.status === 'AVOID' ? 'À éviter' : result?.status === 'SAFE' ? 'Aucun allergène détecté' : 'À vérifier';
-  return <div className="scanner-screen flex-1 min-h-0 flex flex-col bg-[#fafafa] text-[#202020] overflow-y-auto">
+  return <div className="scanner-screen flex-1 min-h-0 flex flex-col bg-background text-text-primary overflow-y-auto">
     <header className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
       <IconButton icon={<ArrowLeft />} className="rounded-full border border-black/5" onClick={() => navigate('/')} aria-label="Fermer le scanner" />
-      <h1 className="text-[22px] font-normal text-center">Scan produit</h1>
+      <h1 className="text-[22px] font-display font-bold text-center">Scan produit</h1>
       <IconButton icon={<MoreVertical />} className="rounded-full border border-black/5" disabled={analyzing} onClick={() => setOptions(true)} aria-label="Options du scanner" />
     </header>
-    <div className="flex-1 flex flex-col justify-center px-5 py-6 min-h-0">
-      <div className="scanner-camera relative w-full aspect-[5/4] rounded-[28px] overflow-hidden bg-[#eeeeec] shrink-0">
-        <div id="reader-container" />
-        {camera !== 'running' && (frozenFrame || completed?.product.imageUrl) && <img src={frozenFrame || completed?.product.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-        {camera !== 'running' && (!frozenFrame && !completed?.product.imageUrl || analyzing || camera === 'starting') && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#757575] pointer-events-none">
+    <div className="flex-1 flex flex-col justify-center px-5 py-6">
+      <div className="scanner-camera relative w-full aspect-[4/5] max-h-[44dvh] rounded-[40px] border border-border-subtle overflow-hidden bg-[#f4ede3] shrink-0">
+        <div id="reader-container" className={manual ? 'invisible' : undefined} />
+        {!manual && camera !== 'running' && (frozenFrame || completed?.product.imageUrl) && <img src={frozenFrame || completed?.product.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+        {!manual && camera !== 'running' && (!frozenFrame && !completed?.product.imageUrl || analyzing || camera === 'starting') && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#757575] pointer-events-none">
           {analyzing || camera === 'starting' ? <Loader2 className="w-10 h-10 animate-spin" /> : <Camera className="w-12 h-12" strokeWidth={1.2} />}
           <span className="text-sm">{analyzing ? 'Analyse en cours…' : camera === 'starting' ? 'Ouverture de la caméra…' : 'Aperçu caméra'}</span>
         </div>}
+        {manual && <div className="absolute inset-0 px-5 pt-5 pb-20 overflow-y-auto flex flex-col"><ManualBarcodeForm value={barcodeValue} onValueChange={setBarcodeValue} disabled={analyzing} onSubmit={code => { void run(signal => fetchProductByBarcode(code, signal)); }} /></div>}
+        <button type="button" disabled={analyzing} onClick={() => switchMode(!manual)} className="scanner-mode-toggle" aria-label={manual ? 'Revenir à la caméra' : 'Saisir le code-barres'}>{manual ? <Camera aria-hidden="true" /> : <Keyboard aria-hidden="true" />}{manual ? 'Revenir à la caméra' : 'Saisir le code-barres'}</button>
       </div>
       <div className="text-center mt-7 min-h-[72px]" aria-live="polite">
-        {error ? <p role="alert" className="text-danger text-sm">{error}</p> : cameraError ? <p role="status" className="text-sm text-text-secondary">{cameraError}</p> : <p className="text-[20px] leading-snug">{analyzing ? 'Nous vérifions votre produit' : camera === 'running' ? 'Présentez votre produit devant la caméra' : 'Appuyez sur le bouton pour'}{!analyzing && camera !== 'running' && <><br />scanner votre produit</>}</p>}
+        {error ? <p role="alert" className="text-danger text-sm">{error}</p> : cameraError ? <p role="status" className="text-sm text-text-secondary">{cameraError}</p> : <p className="text-[20px] leading-snug">{analyzing ? 'Nous vérifions votre produit' : manual ? 'Recopiez les chiffres du code-barres' : camera === 'starting' ? 'Ouverture de la caméra…' : camera === 'running' ? 'Présentez votre produit devant la caméra' : 'Appuyez sur le bouton pour'}{!analyzing && !manual && camera !== 'running' && camera !== 'starting' && <><br />scanner votre produit</>}</p>}
         {!allergies.length && <button className="text-sm underline text-text-secondary mt-2" onClick={() => navigate('/profile')}>Configurer mes allergies</button>}
       </div>
     </div>
     <div className="flex justify-evenly items-center shrink-0 px-5 pt-3 pb-[max(32px,env(safe-area-inset-bottom))]">
       <IconButton icon={<ImageIcon strokeWidth={1.5} />} className="rounded-full border border-black/5" disabled={analyzing} onClick={() => fileRef.current?.click()} aria-label="Importer une photo des ingrédients" />
-      <button type="button" disabled={analyzing || camera === 'starting'} onClick={() => { setCameraError(null); setError(null); setFrozenFrame(null); if (enabled && camera === 'running') { setEnabled(false); setCamera('idle'); } else { setEnabled(true); setCameraAttempt(value => value + 1); } }} aria-label={camera === 'running' ? 'Arrêter le scan' : 'Démarrer le scan'} className="w-[88px] h-[88px] rounded-full border-2 border-[#202020] p-[5px] shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 disabled:opacity-50">
+      <button type="button" disabled={analyzing || camera === 'starting'} onClick={() => { if (manual) { switchMode(false); return; } setCameraError(null); setError(null); setFrozenFrame(null); if (enabled && camera === 'running') { setEnabled(false); setCamera('idle'); } else { setEnabled(true); setCameraAttempt(value => value + 1); } }} aria-label={manual ? 'Revenir à la caméra' : camera === 'running' ? 'Arrêter le scan' : 'Démarrer le scan'} className="w-[88px] h-[88px] rounded-full border-2 border-[#202020] p-[5px] shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 disabled:opacity-50">
         <span className="w-full h-full bg-[#202020] rounded-full flex items-center justify-center text-white"><Scan className="w-8 h-8" strokeWidth={2} /></span>
       </button>
       <IconButton icon={flashOn ? <Zap strokeWidth={1.5} /> : <ZapOff strokeWidth={1.5} />} className="rounded-full border border-black/5" disabled={!flashSupported || camera !== 'running' || analyzing} onClick={() => void flash()} aria-label={flashOn ? 'Désactiver le flash' : flashSupported ? 'Activer le flash' : 'Flash indisponible'} />
     </div>
     <BottomSheet isOpen={options} onClose={() => setOptions(false)} title="Options du scanner">
-      <Button variant="ghost" fullWidth leadingIcon={<Keyboard className="w-5 h-5" />} onClick={() => { setOptions(false); setManual(true); }}>Saisir le code</Button>
+      <Button variant="ghost" fullWidth leadingIcon={<Keyboard className="w-5 h-5" />} onClick={() => { setOptions(false); switchMode(true); }}>Saisir le code-barres</Button>
       <Button variant="ghost" fullWidth leadingIcon={<ImageIcon className="w-5 h-5" />} onClick={() => { setOptions(false); fileRef.current?.click(); }}>Importer une photo des ingrédients</Button>
       {camera === 'running' && <Button variant="ghost" fullWidth leadingIcon={<Camera className="w-5 h-5" />} onClick={() => { setOptions(false); capture(); }}>Photographier les ingrédients</Button>}
     </BottomSheet>
@@ -167,7 +179,6 @@ export const Scanner = () => {
       </>}
     </BottomSheet>
     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choisir une photo des ingrédients" className="hidden" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) importPhoto(file); }} />
-    {manual && <ManualBarcodeSheet onClose={() => setManual(false)} onSubmit={code => { setManual(false); void run(signal => fetchProductByBarcode(code, signal)); }} />}
     <BottomSheet isOpen={!!pendingPhoto} onClose={() => setPendingPhoto(undefined)} title="Analyser cette photo ?">
       <p className="text-text-secondary leading-relaxed mb-4">La photo sera envoyée à Google Gemini pour lire les ingrédients. SafeEat ne conserve pas la photo sur son serveur. Évitez les informations personnelles et photographiez toute l’étiquette.</p>
       <Button fullWidth onClick={() => { const load = pendingPhoto; setPendingPhoto(undefined); if (load) void run(async signal => analyzePhoto(await load(), signal)); }}>Envoyer cette photo et analyser</Button>

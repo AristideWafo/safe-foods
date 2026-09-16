@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { clsx } from 'clsx';
-import { Check } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import { AllergenId } from '../../types';
 
 export interface AllergenChipProps {
@@ -14,7 +14,7 @@ export interface AllergenChipProps {
 
 const ALLERGEN_COLORS: Record<string, string> = {
   gluten: 'bg-danger text-white border-danger',
-  eggs: 'bg-warning text-black border-warning',
+  eggs: 'bg-amber-600 text-white border-amber-600',
   peanuts: 'bg-amber-600 text-white border-amber-600',
   milk: 'bg-primary-500 text-white border-primary-500',
   nuts: 'bg-lime-800 text-white border-lime-800',
@@ -28,6 +28,7 @@ const ALLERGEN_COLORS: Record<string, string> = {
   lupin: 'bg-warning text-black border-warning',
   molluscs: 'bg-text-secondary text-white border-text-secondary',
 };
+const GRID_COLORS: Partial<Record<AllergenId, string>> = { gluten: '#e92125', eggs: '#df8000', milk: '#2563eb' };
 
 export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, selected, onClick, variant = 'grid' }) => {
   if (variant === 'list') {
@@ -59,31 +60,31 @@ export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, sel
       aria-pressed={selected}
       aria-label={`${label}, ${selected ? "sélectionné" : "non sélectionné"}`}
       className={clsx(
-        "relative h-[104px] flex flex-col p-4 rounded-[20px] border transition-all duration-[180ms] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-300 overflow-hidden text-left",
-        selected 
-          ? "bg-white border-primary-500 shadow-[0_4px_12px_rgba(22,131,247,0.12)]" 
-          : "bg-white border-border-subtle hover:bg-black/5"
+        "stitch-allergen-tile relative flex flex-col border transition-all duration-[180ms] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-300 text-left",
+        selected ? "bg-white" : "bg-[#fffdfd] hover:bg-white"
       )}
+      style={{ '--allergen-accent': GRID_COLORS[id] || '#2563eb' } as React.CSSProperties}
     >
       <div className={clsx(
-        "w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors",
-        selected ? "bg-primary-50 text-primary-600" : "bg-background text-text-muted"
+        "stitch-allergen-icon rounded-full flex items-center justify-center transition-colors",
+        selected ? "bg-[var(--allergen-accent)] text-white" : "bg-[#e7e8ec] text-[#434655]"
       )}>
-        <span className="[&>svg]:w-5 [&>svg]:h-5">{icon}</span>
+        <span className="[&>svg]:w-6 [&>svg]:h-6">{icon}</span>
       </div>
       
       <span className={clsx(
-        "font-semibold text-[14px] leading-tight",
+        "stitch-allergen-label font-bold leading-tight",
         selected ? "text-text-primary" : "text-text-secondary"
       )}>
         {label}
       </span>
+      <span className={clsx('stitch-allergen-status mt-1 font-bold', selected ? 'text-[var(--allergen-accent)]' : 'text-text-muted')}>{selected ? 'Actif' : 'Inactif'}</span>
 
       <div className={clsx(
-        "absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-[180ms]",
-        selected ? "bg-primary-500 scale-100 opacity-100" : "scale-50 opacity-0"
+        "stitch-allergen-toggle absolute rounded-full flex items-center justify-center transition-all duration-[180ms]",
+        selected ? "bg-[var(--allergen-accent)] text-white" : "bg-[#f2f3f5] text-[#434655]"
       )}>
-        <Check className="w-3.5 h-3.5 text-white" />
+        {selected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
       </div>
     </button>
   );

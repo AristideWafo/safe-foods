@@ -4,20 +4,20 @@
   --brand-50: #eef4ff;
   --brand-100: #dce9ff;
   --brand-300: #83adff;
-  --brand-500: #1769ff;
-  --brand-600: #0e55db;
+  --brand-500: #2563eb;
+  --brand-600: #004ac6;
   --brand-700: #0a42ae;
 
   --coral-50: #fff0ee;
   --coral-100: #ffd9d4;
   --coral-500: #ff5d52;
   --coral-600: #e8443b;
-  --coral-800: #8d211d;
+  --coral-800: #ba1a1a;
 
   --lime-100: #efffc4;
   --lime-400: #c6ef35;
   --lime-600: #739900;
-  --lime-800: #334a00;
+  --lime-800: #007432;
 
   --amber-50: #fff8dc;
   --amber-400: #ffc43d;
@@ -29,13 +29,13 @@
   --violet-500: #855cff;
   --violet-700: #5b36c9;
 
-  --cream: #fff9f0;
+  --cream: #fff8f0;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --navy-950: #0d1b36;
-  --navy-700: #35425c;
-  --navy-500: #677189;
-  --line: #e9e9ee;
+  --navy-950: #1e1b16;
+  --navy-700: #434655;
+  --navy-500: #737686;
+  --line: #eee7dd;
   --scrim: rgb(5 12 28 / 56%);
 
   --action: var(--brand-500);
@@ -48,8 +48,8 @@
   --text-muted: var(--navy-500);
   --background: var(--cream);
 
-  --gradient-action: linear-gradient(135deg, #0e55db 0%, #0e55db 55%, #6045ff 100%);
-  --gradient-danger: linear-gradient(180deg, #c7352c 0%, #a91e1a 100%);
+  --gradient-action: linear-gradient(135deg, #2563eb, #2563eb);
+  --gradient-danger: linear-gradient(145deg, #c23f3b, #a02725);
   --gradient-camera: linear-gradient(180deg, rgb(5 12 28 / 12%), rgb(5 12 28 / 70%));
   --gradient-lavender: linear-gradient(135deg, #f7f2ff, #eee6ff);
   --gradient-source: linear-gradient(135deg, #fffdf1, #fff5c9);
@@ -100,9 +100,169 @@
   --radius-pill: 999px;
 
   /* Typography */
-  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+.guardian-ambient {
+  background-image: radial-gradient(ellipse at 0% 10%, #dcfce755, transparent 38%), radial-gradient(ellipse at 100% 40%, #ffdad644, transparent 45%);
+}
+.guardian-card {
+  box-shadow: 0 8px 24px -4px rgb(78 59 39 / 6%), 0 2px 6px -1px rgb(78 59 39 / 3%);
+}
+.stitch-home-ambient {
+  background-image: radial-gradient(ellipse 320px 270px at 12% 130px, rgb(188 255 183 / 45%), transparent 85%);
+}
+.stitch-scan-hero {
+  container-type: inline-size;
+  background: #2563eb;
+  border-radius: 32px;
+  padding: 7%;
+  box-shadow: 0 16px 32px -8px rgb(37 99 235 / 35%);
+}
+.stitch-hero-copy { width: 66%; }
+.stitch-hero-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 999px; background: #1d4ed8; color: white;
+  padding: 2px 10px; font-size: clamp(12px, 3.5cqw, 16px); font-weight: 800;
+  margin-bottom: 12px; line-height: 1.3;
+}
+.stitch-hero-badge svg { width: 1em; height: 1em; }
+.stitch-hero-title {
+  max-width: 90%; font-size: clamp(22px, 7cqw, 32px);
+  line-height: 1.25; margin-bottom: 8px;
+}
+.stitch-hero-description {
+  color: #eeefff; font-size: clamp(14px, 4.25cqw, 19px); line-height: 1.45;
+}
+.stitch-hero-cta {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 24px; padding: 12px 16px; border-radius: 999px;
+  color: #2563eb; background: white; font-size: clamp(14px, 4.15cqw, 19px); font-weight: 800;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}
+.stitch-hero-arrow {
+  width: 28px; height: 28px; background: #2563eb; color: white;
+  display: flex; align-items: center; justify-content: center; border-radius: 999px;
+}
+.stitch-hero-arrow svg { width: 20px; height: 20px; }
+.stitch-hero-mascot { position: absolute; width: 31%; height: auto; aspect-ratio: 120 / 140; right: 7%; top: 24%; z-index: 10; }
+.stitch-hero-circle { position: absolute; border-radius: 50%; pointer-events: none; }
+.stitch-hero-circle-top { width: 27%; aspect-ratio: 1; right: -2%; top: 0; background: rgb(0 74 198 / 20%); }
+.stitch-hero-circle-bottom { width: 57%; aspect-ratio: 1; right: -16%; bottom: -23%; background: rgb(255 255 255 / 10%); }
+.stitch-sparkle { position: absolute; width: 4%; aspect-ratio: 1; pointer-events: none; }
+.stitch-sparkle-top { top: 7%; left: 41%; color: #4ae1b3; }
+.stitch-sparkle-middle { top: 21%; left: 64%; color: #6bff8f; }
+.stitch-sparkle-bottom { bottom: 25%; left: 60%; color: #b4c5ff; }
+.stitch-history-saved { text-align: center; padding: 46px 0 32px; }
+.stitch-history-shield { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #eee7dd; color: #737686; margin: 0 auto 16px; }
+.stitch-history-shield svg { width: 28px; height: 28px; }
+.stitch-history-saved h2 { font-family: var(--font-display); font-size: clamp(20px, 4.5vw, 24px); font-weight: 700; line-height: 1.3; color: #1e1b16; margin-bottom: 4px; }
+.stitch-history-saved p { font-size: 14px; line-height: 21px; color: #737686; max-width: 360px; margin: 0 auto; }
+.stitch-allergen-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+.stitch-allergen-heading h2 { font-family: var(--font-display); font-size: clamp(18px, 4.5vw, 24px); font-weight: 600; line-height: 1.3; }
+.stitch-allergen-heading p { color: #737686; font-size: 16px; line-height: 24px; margin-top: 2px; }
+.stitch-profile-shield { width: 44px; height: 44px; border-radius: 50%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stitch-profile-shield svg { width: 24px; height: 24px; fill: white; stroke: #16a34a; }
+.stitch-allergen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(96px, calc((100% - 24px) / 3))), 1fr));
+  gap: 12px;
+}
+.stitch-allergen-tile { min-width: 0; border-color: #f1eade; border-radius: 28px; padding: 12px; min-height: 130px; box-shadow: 0 2px 3px rgb(78 59 39 / 5%); }
+.stitch-allergen-icon { width: 36px; height: 36px; margin-bottom: 18px; flex-shrink: 0; }
+.stitch-allergen-icon svg { width: 22px; height: 22px; }
+.stitch-allergen-label { font-size: 14px; overflow-wrap: break-word; }
+.stitch-allergen-status { font-size: 13px; }
+.stitch-allergen-toggle { width: 24px; height: 24px; top: 12px; right: 10px; }
+.stitch-custom-allergen { display: flex; align-items: center; gap: 10px; background: white; color: #2563eb; border-radius: 28px; padding: 14px 18px; min-height: 52px; width: 100%; margin: 16px 0 20px; font-size: 14px; font-weight: 700; line-height: 20px; box-shadow: 0 8px 24px -4px rgb(78 59 39 / 4%); }
+.stitch-custom-allergen > span:first-child { width: 28px; height: 28px; border-radius: 50%; background: #e5edfb; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.stitch-custom-allergen > span:last-child { flex: 1; min-width: 0; text-align: center; text-wrap: balance; }
+.stitch-custom-allergen svg { width: 18px; height: 18px; }
+.stitch-product-card { position: relative; border-radius: 28px; background: white; min-width: 0; box-shadow: 0 8px 24px -4px rgb(78 59 39 / 7%); --product-color: #ba1a1a; --product-chip: #e92125; --product-tint: #fff0f0; }
+.stitch-product-safe { --product-color: #007432; --product-chip: #16a34a; --product-tint: #dcfce7; }
+.stitch-product-caution { --product-color: #a86600; --product-chip: #b56400; --product-tint: #fff3d6; }
+.stitch-product-link { display: block; padding: 18px; border-radius: inherit; }
+.stitch-product-top { display: flex; gap: 16px; min-width: 0; }
+.stitch-product-thumbnail { position: relative; width: 72px; height: 72px; border-radius: 22px; background: var(--product-tint); color: var(--product-color); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.stitch-product-thumbnail img { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; padding: 8px; }
+.stitch-product-indicator { position: absolute; right: 2px; bottom: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--product-color); border: 2px solid white; color: white; display: flex; align-items: center; justify-content: center; }
+.stitch-product-indicator svg { width: 14px; height: 14px; }
+.stitch-product-copy { flex: 1; min-width: 0; }
+.stitch-product-copy h3 { font-family: var(--font-display); font-size: 20px; line-height: 26px; font-weight: 700; margin-right: 30px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.stitch-product-description { font-size: 14px; line-height: 21px; color: #737686; padding-right: 28px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.stitch-product-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.stitch-product-badges > span { border-radius: 999px; color: white; font-size: 12px; line-height: 18px; font-weight: 800; padding: 3px 10px; }
+.stitch-product-allergens { background: var(--product-chip); display: inline-flex; align-items: center; gap: 4px; max-width: 100%; overflow-wrap: anywhere; }
+.stitch-product-allergens svg { width: 14px; height: 14px; flex-shrink: 0; }
+.stitch-product-verdict { background: var(--product-color); }
+.stitch-product-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; color: var(--product-color); font-size: 13px; line-height: 20px; }
+.stitch-product-footer > span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.stitch-product-footer > span > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.stitch-product-footer svg { width: 15px; height: 15px; flex-shrink: 0; }
+.stitch-product-footer time { color: #737686; font-weight: 800; flex-shrink: 0; }
+.stitch-product-favorite { position: absolute; top: 18px; right: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #c3c6d7; }
+.stitch-product-favorite[aria-pressed="true"] { color: #c23f3b; }
+.stitch-product-favorite:hover { background: #faf3e9; }
+.stitch-product-favorite svg { width: 22px; height: 22px; }
+.home-recent-scan { display: flex; align-items: center; gap: 14px; padding: 14px; min-width: 0; min-height: 92px; background: white; border-radius: 26px; box-shadow: 0 6px 20px -4px rgb(78 59 39 / 6%); --recent-status: #ba1a1a; --recent-badge: #e92125; }
+.home-recent-caution { --recent-status: #a86600; --recent-badge: #df8000; }
+.home-recent-safe { --recent-status: #007432; --recent-badge: #16a34a; }
+.home-recent-thumbnail { width: 58px; height: 58px; border-radius: 18px; overflow: hidden; background: #f4ede3; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.home-recent-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.home-recent-thumbnail > svg { width: 26px; height: 26px; color: #737686; }
+.home-recent-copy { flex: 1; min-width: 0; }
+.home-recent-name { display: block; font-size: 16px; line-height: 22px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+.home-recent-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; line-height: 19px; color: #737686; }
+.home-recent-meta > span:first-child { flex-shrink: 0; }
+.home-recent-dot { width: 4px; height: 4px; border-radius: 50%; background: #c3c6d7; flex-shrink: 0; }
+.home-recent-caption { color: var(--recent-status); font-weight: 800; min-width: 0; overflow-wrap: anywhere; }
+.home-recent-status { width: 38px; height: 38px; border-radius: 50%; background: var(--recent-badge); color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.home-recent-status > svg { width: 22px; height: 22px; }
+.home-recent-check { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: white; color: var(--recent-badge); width: 21px; height: 21px; }
+.home-recent-check svg { width: 16px; height: 16px; stroke-width: 3; }
+.home-safeeat-tip { display: flex; align-items: center; gap: 14px; padding: 20px; border-radius: 26px; background: #faf3e9; color: #434655; font-size: 14px; line-height: 21px; }
+.home-tip-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; background: #dbe1ff; color: #004ac6; border-radius: 50%; }
+.home-tip-icon svg { width: 24px; height: 24px; }
+@media (max-width: 360px) { .home-recent-scan { gap: 10px; padding: 12px; } .home-recent-thumbnail { width: 48px; height: 54px; } .home-recent-name { font-size: 14px; } }
+.detection-preferences { margin-top: 28px; }
+.detection-preferences-card { border: 3px solid #0795ef; border-radius: 32px; padding: 18px; box-shadow: none; }
+.detection-preference-row { display: flex; align-items: center; gap: 14px; padding: 4px 0 20px; }
+.detection-preference-row + .detection-preference-row { border-top: 1px solid #eee7dd; padding-top: 20px; padding-bottom: 4px; }
+.detection-preference-icon { width: 40px; height: 48px; border-radius: 999px; color: white; background: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.detection-preference-icon svg { width: 28px; height: 28px; stroke-width: 3; }
+.detection-preference-copy { flex: 1; min-width: 0; }
+.detection-preference-copy h3, .detection-medical-title { font-size: 16px; font-weight: 800; line-height: 22px; }
+.detection-preference-copy p, .detection-medical-description { color: #737686; font-size: 14px; line-height: 21px; margin-top: 4px; }
+.app-switch { width: 56px; height: 34px; border-radius: 999px; background: #c3c6d7; padding: 4px; flex-shrink: 0; transition: background 150ms; }
+.app-switch span { display: block; width: 26px; height: 26px; border-radius: 50%; background: white; transition: transform 150ms; }
+.app-switch-on { background: #2563eb; }
+.app-switch-on span { transform: translateX(22px); }
+.detection-medical-card { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 22px 18px; border: 0; border-radius: 32px; background: #dffbdd; }
+.detection-medical-icon { width: 48px; height: 48px; border-radius: 50%; color: #007432; background: #6bff8f; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.detection-medical-icon svg { width: 28px; height: 28px; stroke-width: 3; }
+.detection-medical-title, .detection-medical-description { display: block; }
+.detection-medical-arrow { width: 42px; height: 42px; border-radius: 50%; background: white; color: #007432; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.detection-profile-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.detection-profile-actions > button { flex: 1; font-size: 14px; padding: 0 14px; background: white; border: 0; }
+.detection-profile-actions > button:disabled { background: #f4ede3; color: #737686; opacity: 1; }
+@media (max-width: 360px) {
+  .detection-preferences-card { padding: 14px; }
+  .detection-preference-row { gap: 10px; }
+  .detection-preference-icon { width: 32px; height: 40px; }
+  .app-switch { width: 48px; height: 30px; }
+  .app-switch span { width: 22px; height: 22px; }
+  .app-switch-on span { transform: translateX(18px); }
+}
+@media (max-width: 380px) {
+  .stitch-product-link { padding: 14px; }
+  .stitch-product-top { gap: 10px; }
+  .stitch-product-thumbnail { width: 56px; height: 64px; border-radius: 18px; }
+  .stitch-product-copy h3 { font-size: 17px; line-height: 23px; }
+  .stitch-product-badges > span { padding-inline: 8px; }
+}
+button, a, summary, input { touch-action: manipulation; }
+:focus-visible { outline: 3px solid var(--brand-500); outline-offset: 3px; }
 
 body {
   background-color: var(--color-background);
@@ -142,6 +302,9 @@ p, h1, h2, h3, h4, h5, h6, span {
   object-fit: cover;
 }
 .scanner-camera #qr-shaded-region { display: none !important; }
+.scanner-mode-toggle { position: absolute; z-index: 20; bottom: 16px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: max-content; max-width: calc(100% - 24px); padding: 12px 16px; border-radius: 999px; border: 1px solid rgb(255 255 255 / 65%); background: rgb(255 255 255 / 78%); backdrop-filter: blur(14px); color: #1e1b16; font-size: 14px; font-weight: 800; box-shadow: 0 4px 14px rgb(0 0 0 / 10%); }
+.scanner-mode-toggle svg { width: 18px; height: 18px; flex-shrink: 0; }
+.scanner-mode-toggle:disabled { opacity: 0.5; }
 @media (max-height: 650px) {
   .scanner-screen header { padding-top: 12px; }
   .scanner-camera { max-height: 36dvh; }

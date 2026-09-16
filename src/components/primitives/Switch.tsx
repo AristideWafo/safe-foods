@@ -1,0 +1,2 @@
+interface SwitchProps { checked: boolean; onChange: (checked: boolean) => void; labelledBy: string; describedBy?: string; }
+export const Switch = ({ checked, onChange, labelledBy, describedBy }: SwitchProps) => <button type="button" role="switch" aria-checked={checked} aria-labelledby={labelledBy} aria-describedby={describedBy} onClick={() => onChange(!checked)} className={`app-switch ${checked ? 'app-switch-on' : ''}`}><span aria-hidden="true" /></button>;

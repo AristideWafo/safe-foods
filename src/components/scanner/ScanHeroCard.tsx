@@ -1,6 +1,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Zap } from 'lucide-react';
+import { ProductMascot } from './ProductMascot';
 
 interface ScanHeroCardProps {
   title?: string;
@@ -19,32 +20,36 @@ export const ScanHeroCard: React.FC<ScanHeroCardProps> = ({
     <button 
       onClick={onActivate}
       className={clsx(
-        "relative w-full h-[180px] rounded-[22px] p-6 flex flex-col justify-between items-start text-left overflow-hidden transition-all duration-[220ms] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-300 focus-visible:ring-offset-2 active:scale-[0.99] hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,105,255,0.24)]",
+        "stitch-scan-hero relative w-full text-left overflow-hidden transition-all duration-[220ms] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-300 focus-visible:ring-offset-2 active:scale-[0.98] hover:-translate-y-0.5",
         className
       )}
-      style={{ backgroundImage: 'var(--gradient-action)' }}
     >
-      <div className="absolute top-4 right-4 z-0 opacity-20">
-        <Sparkles className="w-24 h-24 text-white" />
-      </div>
+      <span className="stitch-hero-circle stitch-hero-circle-top" aria-hidden="true" />
+      <span className="stitch-hero-circle stitch-hero-circle-bottom" aria-hidden="true" />
+      <svg className="stitch-sparkle stitch-sparkle-top" aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" /></svg>
+      <svg className="stitch-sparkle stitch-sparkle-middle" aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" /></svg>
+      <svg className="stitch-sparkle stitch-sparkle-bottom" aria-hidden="true" viewBox="0 0 24 24"><path fill="currentColor" d="M12 0L14 9L23 12L14 15L12 24L10 15L1 12L10 9Z" /></svg>
       
+      {!illustrationSrc && <div className="stitch-hero-mascot"><ProductMascot /></div>}
       {illustrationSrc && (
         <img 
           src={illustrationSrc} 
           alt="" 
           aria-hidden="true"
-          className="absolute bottom-[-10px] right-[-10px] h-[140px] object-contain z-10"
+          className="stitch-hero-mascot object-contain"
         />
       )}
 
-      <div className="relative z-20 w-[60%]">
-        <h2 className="text-[28px] leading-[32px] font-display font-extrabold text-white mb-4">
+      <div className="stitch-hero-copy relative z-20">
+        <span className="stitch-hero-badge"><Zap aria-hidden="true" />Instantané</span>
+        <h2 className="stitch-hero-title font-display font-bold text-white">
           {title}
         </h2>
+        <p className="stitch-hero-description">Vérifiez les allergènes et additifs en 1 seconde.</p>
       </div>
 
-      <div className="relative z-20 w-[46px] h-[46px] rounded-full bg-white flex items-center justify-center text-primary-500 shadow-md">
-        <ArrowRight className="w-6 h-6" />
+      <div className="stitch-hero-cta relative z-20">
+        Ouvrir la caméra <span className="stitch-hero-arrow"><ArrowRight aria-hidden="true" /></span>
       </div>
     </button>
   );

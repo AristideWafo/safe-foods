@@ -1,67 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AnalysisStatus } from '../../types';
-import { TriangleAlert, FileQuestion } from 'lucide-react';
+import { Check, CircleAlert, OctagonX, Package, Star, TriangleAlert, X } from 'lucide-react';
+import type { AnalysisStatus, ScanHistoryItem } from '../../types';
+import { getAllergenDefinitions } from '../../constants/customAllergens';
+import { useStore } from '../../store/useStore';
 
-interface RecentScanRowProps {
-  id: string;
-  barcode: string;
-  productName: string;
-  scannedAt: string;
-  thumbnailUrl?: string;
-  status: AnalysisStatus;
-}
+interface RecentScanRowProps { id: string; barcode: string; productName: string; scannedAt: string; thumbnailUrl?: string; status: AnalysisStatus; scanItem?: ScanHistoryItem; }
 
-export const RecentScanRow: React.FC<RecentScanRowProps> = ({
-  id, productName, scannedAt, thumbnailUrl, status
-}) => {
-
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'AVOID': return <div className="w-8 h-8 rounded-full bg-danger text-white flex items-center justify-center shrink-0" aria-label="À éviter"><span className="text-[18px] font-bold leading-none -mt-[2px]">!</span></div>;
-      case 'UNCERTAIN': return <div className="w-8 h-8 rounded-full bg-warning text-white flex items-center justify-center shrink-0" aria-label="Prudence"><TriangleAlert className="w-[18px] h-[18px] stroke-[2.5] fill-warning text-white" /></div>;
-      case 'SAFE': return <div className="w-8 h-8 rounded-full bg-[#334a00] text-white flex items-center justify-center shrink-0" aria-label="Aucun allergène détecté"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>;
-      default: return <div className="w-8 h-8 rounded-full bg-text-tertiary/10 text-text-secondary flex items-center justify-center shrink-0" aria-label="Inconnu"><FileQuestion className="w-4 h-4" /></div>;
-    }
-  };
-
-  return (
-    <Link
-      to={`/scan/${encodeURIComponent(id)}`}
-      className="flex items-center min-h-[72px] p-3 rounded-[16px] bg-white border border-border-subtle shadow-[0_4px_12px_rgba(13,27,54,0.03)] transition-transform active:scale-[0.98] hover:bg-black/5"
-    >
-      {thumbnailUrl ? (
-        <div className="w-[42px] h-[52px] rounded-md overflow-hidden bg-background shrink-0 flex items-center justify-center mr-3">
-          <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
-        </div>
-      ) : (
-        <div className="w-[42px] h-[52px] rounded-md bg-background border border-border-subtle shrink-0 flex items-center justify-center mr-3">
-          <span className="text-[10px] font-bold text-text-muted uppercase text-center leading-none">Photo<br/>N/A</span>
-        </div>
-      )}
-
-      <div className="flex-1 min-w-0 mr-3">
-        <h3 className="font-semibold text-text-primary text-[15px] truncate leading-tight mb-0.5">
-          {productName || "Produit inconnu"}
-        </h3>
-        <p className="text-[12px] font-medium text-text-tertiary">
-          {scannedAt}
-        </p>
+export const RecentScanRow: React.FC<RecentScanRowProps> = ({ id, productName, scannedAt, thumbnailUrl, status, scanItem }) => {
+  const { history, customAllergens, toggleFavorite } = useStore();
+  const scan = scanItem || history.find(item => item.id === id);
+  const result = scan?.result;
+  const currentStatus = result?.status || status;
+  const tone = currentStatus === 'AVOID' ? 'danger' : currentStatus === 'SAFE' ? 'safe' : 'caution';
+  const verdict = currentStatus === 'AVOID' ? 'À éviter' : currentStatus === 'SAFE' ? 'Aucun détecté' : 'À vérifier';
+  const allergens = getAllergenDefinitions(customAllergens).filter(allergen => result && [...result.detectedAllergens, ...result.detectedTraces, ...(result.textualMatches || [])].includes(allergen.id));
+  const allergenLabel = allergens.length ? `${result?.detectedTraces.length && !result.detectedAllergens.length ? 'Traces : ' : ''}${allergens.map(allergen => allergen.label).join(', ')}` : currentStatus === 'SAFE' ? 'Selon votre profil' : 'Données incertaines';
+  const description = [scan?.product.brand, scan?.product.quantity].filter(Boolean).join(' • ') || (scan?.product.source === 'photo' ? 'Photo des ingrédients' : 'Fiche Open Food Facts');
+  const time = scan ? new Date(scan.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : scannedAt;
+  const StatusIcon = currentStatus === 'AVOID' ? OctagonX : currentStatus === 'SAFE' ? Check : CircleAlert;
+  return <article className={`stitch-product-card stitch-product-${tone}`}>
+    <Link to={`/scan/${encodeURIComponent(id)}`} className="stitch-product-link" aria-label={`Voir l’analyse de ${productName || 'Produit inconnu'}, ${verdict}`}>
+      <div className="stitch-product-top">
+        <div className="stitch-product-thumbnail">{thumbnailUrl ? <img src={thumbnailUrl} alt="" /> : <Package aria-hidden="true" className="w-8 h-8" />}<span className="stitch-product-indicator" aria-hidden="true">{currentStatus === 'AVOID' ? <X /> : currentStatus === 'SAFE' ? <Check /> : <CircleAlert />}</span></div>
+        <div className="stitch-product-copy"><h3 title={productName}>{productName || 'Produit inconnu'}</h3><p className="stitch-product-description">{description}</p><div className="stitch-product-badges"><span className="stitch-product-allergens" title={allergenLabel}><TriangleAlert aria-hidden="true" />{allergenLabel}</span><span className="stitch-product-verdict">{verdict}</span></div></div>
       </div>
-
-      {getStatusIcon()}
+      <div className="stitch-product-footer"><span title={result?.explanation}><StatusIcon aria-hidden="true" /><span>{currentStatus === 'AVOID' ? 'Allergène détecté dans les données' : currentStatus === 'SAFE' ? 'Aucun allergène de votre profil détecté' : 'Vérifiez les traces et l’étiquette'}</span></span><time>{time}</time></div>
     </Link>
-  );
+    <button type="button" className="stitch-product-favorite" disabled={!scan} aria-pressed={!!scan?.isFavorite} aria-label={`${scan?.isFavorite ? 'Retirer' : 'Ajouter'} ${productName} ${scan?.isFavorite ? 'des' : 'aux'} favoris`} onClick={() => toggleFavorite(id)}><Star aria-hidden="true" fill={scan?.isFavorite ? 'currentColor' : 'none'} /></button>
+  </article>;
 };
 
-export const RecentScansEmptyState: React.FC = () => {
-  return (
-    <div className="w-full flex flex-col items-center text-center p-6 bg-white rounded-[22px] border border-border-subtle border-dashed">
-      <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center mb-4">
-        <span className="text-2xl" aria-hidden="true">📦</span>
-      </div>
-      <h3 className="font-bold text-[16px] text-text-primary mb-1">Aucun scan pour le moment</h3>
-      <p className="text-[14px] text-text-secondary mb-4">Votre historique apparaîtra ici.</p>
-    </div>
-  );
-};
+export const RecentScansEmptyState: React.FC = () => <div className="w-full flex flex-col items-center text-center p-6 bg-white rounded-[22px] border border-border-subtle border-dashed"><div className="w-16 h-16 rounded-full bg-background flex items-center justify-center mb-4"><Package className="w-7 h-7 text-primary-600" aria-hidden="true" /></div><h3 className="font-bold text-[16px] text-text-primary mb-1">Aucun scan pour le moment</h3><p className="text-[14px] text-text-secondary mb-4">Votre historique apparaîtra ici.</p></div>;
