@@ -5,6 +5,7 @@ import { Camera, Loader2, ArrowLeft, MoreVertical, Scan, Image as ImageIcon, Key
 import { useStore } from '../store/useStore';
 import { fetchProductByBarcode } from '../services/OpenFoodFacts';
 import { isValidBarcode } from '../services/Barcode';
+import { photoConsentMode } from '../services/AIPreferences';
 import { preparePhoto, analyzePhoto } from '../services/Photo';
 import type { Product } from '../types';
 import { Button } from '../components/primitives/Button';
@@ -33,7 +34,7 @@ export const Scanner = () => {
   const location = useLocation();
   const referenceScanId = isRecord(location.state) && typeof location.state.referenceScanId === 'string' ? location.state.referenceScanId : undefined;
   const reference = useStore(state => state.history.find(scan => scan.id === referenceScanId)?.product);
-  const { allergies, customAllergens, recordScan } = useStore();
+  const { allergies, customAllergens, recordScan, aiPreferences } = useStore();
   const [frozenFrame, setFrozenFrame] = useState<string | null>(null);
   const [options, setOptions] = useState(false);
   const [completed, setCompleted] = useState<{ id: string; product: Product } | null>(null);
@@ -122,11 +123,27 @@ export const Scanner = () => {
     try { await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !flashOn } as MediaTrackConstraintSet] }); setFlashOn(value => !value); }
     catch { setFlashSupported(false); setFlashOn(false); }
   };
-  const importPhoto = (file: File) => { if (!processing.current) setPendingPhoto(() => () => preparePhoto(file)); };
+  const runPhoto = (load: () => Promise<string>) => {
+    if (!useStore.getState().aiPreferences.photoAnalysis) { setError('L’analyse photo par l’IA est désactivée dans vos réglages.'); return; }
+    void run(async signal => {
+      const data = await load();
+      if (!useStore.getState().aiPreferences.photoAnalysis) throw new Error('L’analyse photo par l’IA est désactivée dans vos réglages.');
+      const photo = await analyzePhoto(data, signal);
+      return reference ? compareLabelObservation(reference, photo) : photo;
+    });
+  };
+  const requestPhoto = (load: () => Promise<string>) => {
+    if (processing.current) return;
+    const mode = photoConsentMode(useStore.getState().aiPreferences);
+    if (mode === 'disabled') { setError('L’analyse photo par l’IA est désactivée dans vos réglages.'); return; }
+    if (mode === 'send') runPhoto(load);
+    else { blockedRef.current = true; setPendingPhoto(() => load); }
+  };
+  const importPhoto = (file: File) => requestPhoto(() => preparePhoto(file));
   const capture = () => {
     const data = cameraFrame();
     if (!data) { fileRef.current?.click(); return; }
-    setFrozenFrame(data); setPendingPhoto(() => async () => data);
+    setFrozenFrame(data); requestPhoto(async () => data);
   };
   const switchMode = (toManual: boolean) => {
     blockedRef.current = toManual || !!pendingPhoto || !!completed;
@@ -158,8 +175,9 @@ export const Scanner = () => {
         {!allergies.length && <button className="text-sm underline text-text-secondary mt-2" onClick={() => navigate('/profile')}>Configurer mes allergies</button>}
       </div>
     </div>
+    <p className="px-5 text-center text-[13px] text-text-secondary">{!aiPreferences.photoAnalysis ? 'Analyse photo par l’IA désactivée.' : aiPreferences.autoSendPhotos ? 'Les photos choisies ou prises sont envoyées à Google Gemini sans confirmation.' : 'Chaque envoi de photo à Google Gemini vous sera demandé.'} <button type="button" className="underline font-bold" onClick={() => navigate('/profile#ai-preferences')}>Réglages IA</button></p>
     <div className="flex justify-evenly items-center shrink-0 px-5 pt-3 pb-[max(32px,env(safe-area-inset-bottom))]">
-      <IconButton icon={<ImageIcon strokeWidth={1.5} />} className="rounded-full border border-black/5" disabled={analyzing} onClick={() => fileRef.current?.click()} aria-label="Importer une photo des ingrédients" />
+      <IconButton icon={<ImageIcon strokeWidth={1.5} />} className="rounded-full border border-black/5" disabled={analyzing || !aiPreferences.photoAnalysis} onClick={() => fileRef.current?.click()} aria-label="Importer une photo des ingrédients" />
       <button type="button" disabled={analyzing || camera === 'starting'} onClick={() => { if (manual) { switchMode(false); return; } setCameraError(null); setError(null); setFrozenFrame(null); if (enabled && camera === 'running') { setEnabled(false); setCamera('idle'); } else { setEnabled(true); setCameraAttempt(value => value + 1); } }} aria-label={manual ? 'Revenir à la caméra' : camera === 'running' ? 'Arrêter le scan' : 'Démarrer le scan'} className="w-[88px] h-[88px] rounded-full border-2 border-[#202020] p-[5px] shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 disabled:opacity-50">
         <span className="w-full h-full bg-[#202020] rounded-full flex items-center justify-center text-white"><Scan className="w-8 h-8" strokeWidth={2} /></span>
       </button>
@@ -167,8 +185,8 @@ export const Scanner = () => {
     </div>
     <BottomSheet isOpen={options} onClose={() => setOptions(false)} title="Options du scanner">
       <Button variant="ghost" fullWidth leadingIcon={<Keyboard className="w-5 h-5" />} onClick={() => { setOptions(false); switchMode(true); }}>Saisir le code-barres</Button>
-      <Button variant="ghost" fullWidth leadingIcon={<ImageIcon className="w-5 h-5" />} onClick={() => { setOptions(false); fileRef.current?.click(); }}>Importer une photo des ingrédients</Button>
-      {camera === 'running' && <Button variant="ghost" fullWidth leadingIcon={<Camera className="w-5 h-5" />} onClick={() => { setOptions(false); capture(); }}>Photographier les ingrédients</Button>}
+      <Button variant="ghost" fullWidth disabled={!aiPreferences.photoAnalysis} leadingIcon={<ImageIcon className="w-5 h-5" />} onClick={() => { setOptions(false); fileRef.current?.click(); }}>Importer une photo des ingrédients</Button>
+      {camera === 'running' && aiPreferences.photoAnalysis && <Button variant="ghost" fullWidth leadingIcon={<Camera className="w-5 h-5" />} onClick={() => { setOptions(false); capture(); }}>Photographier les ingrédients</Button>}
     </BottomSheet>
     <BottomSheet isOpen={!!completed} onClose={() => setCompleted(null)} title="Résultat du scan" centered>
       {completed && <>
@@ -187,10 +205,7 @@ export const Scanner = () => {
     <BottomSheet isOpen={!!pendingPhoto} onClose={() => setPendingPhoto(undefined)} title="Analyser cette photo ?">
       <p className="text-text-secondary leading-relaxed mb-4">La photo sera envoyée à Google Gemini pour lire les ingrédients. SafeEat ne conserve pas la photo sur son serveur. Évitez les informations personnelles et photographiez toute l’étiquette.</p>
       {reference && <p className="text-sm mb-4">Vérification de « {reference.name} ». Photographiez ce même produit. Les différences avec l’analyse précédente seront conservées et signalées.</p>}
-      <Button fullWidth onClick={() => { const load = pendingPhoto; setPendingPhoto(undefined); if (load) void run(async signal => {
-        const photo = await analyzePhoto(await load(), signal);
-        return reference ? compareLabelObservation(reference, photo) : photo;
-      }); }}>Envoyer cette photo et analyser</Button>
+      <Button fullWidth onClick={() => { const load = pendingPhoto; setPendingPhoto(undefined); if (load) runPhoto(load); }}>Envoyer cette photo et analyser</Button>
       <Button fullWidth variant="ghost" onClick={() => setPendingPhoto(undefined)}>Annuler</Button>
     </BottomSheet>
   </div>;

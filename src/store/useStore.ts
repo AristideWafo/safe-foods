@@ -3,6 +3,8 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AllergenId, AllergenDef, Product, ScanHistoryItem } from '../types';
 import { DEFAULT_CUSTOM_ALLERGENS, getAllergenDefinitions } from '../constants/customAllergens';
 import { analyzeProduct, normalizeIngredientText } from '../services/AnalysisEngine';
+import { DEFAULT_AI_PREFERENCES, parseAIPreferences } from '../services/AIPreferences';
+import type { AIPreferences } from '../services/AIPreferences';
 import { isRecord, parseProduct } from '../services/ProductValidation';
 
 export interface SafeEatState {
@@ -10,6 +12,8 @@ export interface SafeEatState {
   addCustomAllergen: (label: string, keywords?: string[]) => void;
   preferences: { traceAlerts: boolean; sensoryAlerts: boolean };
   setPreference: (key: 'traceAlerts' | 'sensoryAlerts', enabled: boolean) => void;
+  aiPreferences: AIPreferences;
+  setAIPreference: (key: keyof AIPreferences, enabled: boolean) => void;
   allergies: AllergenId[];
   history: ScanHistoryItem[];
   toggleAllergy: (id: AllergenId) => void;
@@ -20,7 +24,7 @@ export interface SafeEatState {
   toggleFavorite: (id: string) => void;
 }
 const parseAllergies = (value: unknown, custom: AllergenDef[]): AllergenId[] => getAllergenDefinitions(custom).filter(a => Array.isArray(value) && value.includes(a.id)).map(a => a.id);
-export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergies' | 'history' | 'preferences' | 'customAllergens'> => {
+export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergies' | 'history' | 'preferences' | 'customAllergens' | 'aiPreferences'> => {
   const state = isRecord(value) ? value : {};
   const customAllergens = [...DEFAULT_CUSTOM_ALLERGENS];
   if (Array.isArray(state.customAllergens)) for (const entry of state.customAllergens.slice(0, 30)) {
@@ -43,7 +47,7 @@ export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergi
     if (history.length === 50) break;
   }
   const settings = isRecord(state.preferences) ? state.preferences : {};
-  return { allergies, history, customAllergens, preferences: { traceAlerts: typeof settings.traceAlerts === 'boolean' ? settings.traceAlerts : true, sensoryAlerts: typeof settings.sensoryAlerts === 'boolean' ? settings.sensoryAlerts : true } };
+  return { allergies, history, customAllergens, aiPreferences: parseAIPreferences(state.aiPreferences), preferences: { traceAlerts: typeof settings.traceAlerts === 'boolean' ? settings.traceAlerts : true, sensoryAlerts: typeof settings.sensoryAlerts === 'boolean' ? settings.sensoryAlerts : true } };
 };
 export const useStore = create<SafeEatState>()(persist((set, get) => ({
   allergies: [], history: [],
@@ -61,6 +65,8 @@ export const useStore = create<SafeEatState>()(persist((set, get) => ({
     const allergies = [...state.allergies, id];
     set({ customAllergens, allergies, history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, allergies, customAllergens) })) });
   },
+  aiPreferences: { ...DEFAULT_AI_PREFERENCES },
+  setAIPreference: (key, enabled) => set(state => ({ aiPreferences: parseAIPreferences({ ...state.aiPreferences, [key]: enabled }) })),
   preferences: { traceAlerts: true, sensoryAlerts: true },
   setPreference: (key, enabled) => set(state => ({ preferences: { ...state.preferences, [key]: enabled } })),
   toggleAllergy: id => set(state => {
