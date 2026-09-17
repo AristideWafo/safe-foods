@@ -164,9 +164,8 @@
 .stitch-allergen-heading p { color: #737686; font-size: 16px; line-height: 24px; margin-top: 2px; }
 .stitch-profile-shield { width: 44px; height: 44px; border-radius: 50%; background: #16a34a; color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .stitch-profile-shield svg { width: 24px; height: 24px; fill: white; stroke: #16a34a; }
-.stitch-allergen-grid { display: flex; flex-wrap: wrap; width: 100%; min-width: 0; align-items: flex-start; gap: 12px; }
-@media (max-width: 359px) { .stitch-allergen-tile { max-width: 120px; } }
-.stitch-allergen-tile { width: 128px; max-width: 100%; min-width: 0; border: 2px solid #f1eade; border-radius: 24px; box-shadow: 0 2px 3px rgb(78 59 39 / 5%); }
+.stitch-allergen-grid { display: flex; flex-wrap: wrap; width: 100%; min-width: 0; align-items: flex-start; justify-content: space-around; row-gap: 12px; }
+.stitch-allergen-tile { flex: 0 0 auto; width: 128px; max-width: calc(100% / 3); min-width: 0; border: 2px solid #f1eade; border-radius: 24px; box-shadow: 0 2px 3px rgb(78 59 39 / 5%); }
 .stitch-allergen-selected { border-color: var(--allergen-accent); }
 .stitch-allergen-select { width: 100%; padding: 12px; }
 .stitch-allergen-icon { width: 36px; height: 36px; margin-bottom: 12px; flex-shrink: 0; }
