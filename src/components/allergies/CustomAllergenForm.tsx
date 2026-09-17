@@ -2,13 +2,15 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { Sparkles, LoaderCircle, Plus, X } from 'lucide-react';
 import { suggestSynonyms, MAX_SYNONYMS } from '../../services/Synonyms';
+import type { AllergenDef } from '../../types';
 import { Button } from '../primitives/Button';
-export const CustomAllergenForm = () => {
+export const CustomAllergenForm = ({ allergen, onDone }: { allergen?: AllergenDef; onDone?: (saved?: boolean) => void }) => {
   const id = useId();
   const aiEnabled = useStore(state => state.aiPreferences.synonymSuggestions);
+  const update = useStore(state => state.updateCustomAllergen);
   const add = useStore(state => state.addCustomAllergen);
-  const [name, setName] = useState('');
-  const [aliases, setAliases] = useState('');
+  const [name, setName] = useState(allergen?.label || '');
+  const [aliases, setAliases] = useState(allergen?.keywords?.filter(word => word !== allergen.label).join(', ') || '');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -16,6 +18,7 @@ export const CustomAllergenForm = () => {
   const [suggestionStatus, setSuggestionStatus] = useState('');
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
+  useEffect(() => { if (allergen) document.getElementById(`${id}-name`)?.focus(); }, [allergen, id]);
   useEffect(() => useStore.subscribe((state, previous) => {
     if (!state.aiPreferences.synonymSuggestions && previous.aiPreferences.synonymSuggestions) {
       pending.current?.abort(); pending.current = null;
@@ -57,10 +60,10 @@ export const CustomAllergenForm = () => {
   };
   return <form className="mt-6 space-y-3" onSubmit={event => {
     event.preventDefault(); setError(''); setSaved('');
-    try { add(name, aliases.split(',')); cancelSuggestions(); setSaved(`${name.trim()} ajouté et activé.`); setName(''); setAliases(''); }
+    try { if (allergen) update(allergen.id, name, aliases.split(',')); else add(name, aliases.split(',')); cancelSuggestions(); setSaved(`${name.trim()} ${allergen ? 'modifié' : 'ajouté et activé'}.`); if (!allergen) { setName(''); setAliases(''); } onDone?.(true); }
     catch (err) { setError(err instanceof Error ? err.message : 'Ajout impossible.'); }
   }}>
-    <h3 className="font-display font-bold text-[18px]">Ajouter mon allergène</h3>
+    <h3 className="font-display font-bold text-[18px]">{allergen ? 'Modifier mon allergène' : 'Ajouter mon allergène'}</h3>
     <label htmlFor={`${id}-name`} className="block text-[14px] font-bold">Nom de l’ingrédient ou additif</label>
     <input id={`${id}-name`} required minLength={2} maxLength={60} value={name} onChange={event => { cancelSuggestions(); setName(event.target.value); setError(''); setSaved(''); }} placeholder="Ex. : kiwi" className="w-full rounded-2xl bg-background border border-border-subtle px-4 py-3" aria-describedby={`${id}-help`} />
     <div className="flex items-center gap-3">
@@ -73,10 +76,13 @@ export const CustomAllergenForm = () => {
     {suggestionStatus && <p role="status" className="text-sm text-text-secondary">{suggestionStatus}</p>}
     {suggestions.length > 0 && <div className="space-y-2">
       <p className="text-sm font-bold">Suggestions à valider</p>
-      <ul className="flex flex-wrap gap-2">{suggestions.map((value, index) => <li key={index} className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1">
-        <input aria-label={`Modifier la suggestion ${index + 1}`} value={value} maxLength={60} onChange={event => setSuggestions(old => old.map((item, i) => i === index ? event.target.value : item))} className="w-32 min-w-0 bg-transparent px-2 py-1 text-sm text-blue-950 rounded-full focus-visible:outline-blue-600" />
-        <button type="button" onClick={() => acceptSuggestion(index)} aria-label={`Retenir ${value || 'cette suggestion'}`} className="p-2 rounded-full text-blue-700 hover:bg-blue-100"><Plus className="h-4 w-4" aria-hidden="true" /></button>
-        <button type="button" onClick={() => setSuggestions(old => old.filter((_, i) => i !== index))} aria-label={`Supprimer ${value || 'cette suggestion'}`} className="p-2 rounded-full text-blue-700 hover:bg-blue-100"><X className="h-4 w-4" aria-hidden="true" /></button>
+      <ul className="flex flex-wrap gap-2">{suggestions.map((value, index) => <li key={index} className="inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-1">
+        <span className="relative inline-block min-w-0 max-w-full text-sm">
+          <span aria-hidden="true" className="invisible block overflow-hidden whitespace-pre px-2 py-1">{value || ' '}</span>
+        <input aria-label={`Modifier la suggestion ${index + 1}`} value={value} maxLength={60} onChange={event => setSuggestions(old => old.map((item, i) => i === index ? event.target.value : item))} className="absolute inset-0 w-full min-w-0 bg-transparent px-2 py-1 text-sm text-blue-950 rounded-full focus-visible:outline-blue-600" />
+        </span>
+        <button type="button" onClick={() => acceptSuggestion(index)} aria-label={`Retenir ${value || 'cette suggestion'}`} className="shrink-0 p-2 rounded-full text-blue-700 hover:bg-blue-100"><Plus className="h-4 w-4" aria-hidden="true" /></button>
+        <button type="button" onClick={() => setSuggestions(old => old.filter((_, i) => i !== index))} aria-label={`Supprimer ${value || 'cette suggestion'}`} className="shrink-0 p-2 rounded-full text-blue-700 hover:bg-blue-100"><X className="h-4 w-4" aria-hidden="true" /></button>
       </li>)}</ul>
       <p className="text-[13px] text-text-secondary">L’IA peut se tromper. Seuls les noms retenus avec + seront enregistrés avec l’allergène. Cette liste n’est pas exhaustive.</p>
     </div>}
@@ -85,6 +91,7 @@ export const CustomAllergenForm = () => {
     <p id={`${id}-help`} className="text-[13px] text-text-secondary">Le nom et les mots-clés sont recherchés dans les ingrédients. La détection reste à vérifier sur l’étiquette ; elle ne couvre pas tous les dérivés ou synonymes.</p>
     {error && <p role="alert" className="text-danger text-[14px]">{error}</p>}
     {saved && <p role="status" className="text-verified text-[14px]">{saved}</p>}
-    <Button type="submit" fullWidth>Ajouter et activer</Button>
+    <Button type="submit" fullWidth>{allergen ? 'Enregistrer les modifications' : 'Ajouter et activer'}</Button>
+    {allergen && <Button type="button" fullWidth variant="ghost" onClick={() => onDone?.(false)}>Annuler</Button>}
   </form>;
 };
