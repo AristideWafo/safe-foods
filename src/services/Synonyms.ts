@@ -5,7 +5,12 @@ export const cleanSynonyms = (value: unknown, name: string): string[] | null => 
   if (!Array.isArray(value) || value.length > MAX_SYNONYMS || !value.every(item => typeof item === 'string' && item.trim().length > 0 && item.length <= 60 && !/[\n\r,;]/.test(item) && /[\p{L}\p{N}]/u.test(item))) return null;
   return [...new Set(value.map(item => (item as string).trim().toLowerCase().replace(/\s+/g, ' ')))].filter(item => item !== name.trim().toLowerCase());
 };
-export const suggestSynonyms = async (name: string, signal: AbortSignal): Promise<string[]> => {
+export const cleanSuggestedName = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const name = value.trim().replace(/\s+/g, ' ');
+  return name.length >= 2 && name.length <= 60 && !/[\n\r,;]/.test(value) && /[\p{L}\p{N}]/u.test(name) ? name : null;
+};
+export const suggestAllergen = async (name: string, signal: AbortSignal): Promise<{ name: string; synonyms: string[] }> => {
   const response = await fetch('/api/suggest-synonyms', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }), signal,
   });
@@ -19,5 +24,9 @@ export const suggestSynonyms = async (name: string, signal: AbortSignal): Promis
   if (data === null) throw new Error('Les suggestions reçues sont illisibles. Réessayez.');
   const synonyms = isRecord(data) ? cleanSynonyms(data.synonyms, name) : null;
   if (!synonyms) throw new Error('Les suggestions reçues sont invalides. Vous pouvez saisir les noms vous-même.');
-  return synonyms;
+  const correctedName = isRecord(data) && data.name !== undefined ? cleanSuggestedName(data.name) : name;
+  if (!correctedName) throw new Error('Le nom proposé est invalide. Réessayez.');
+  return { name: correctedName, synonyms };
 };
+
+export const suggestSynonyms = async (name: string, signal: AbortSignal): Promise<string[]> => (await suggestAllergen(name, signal)).synonyms;

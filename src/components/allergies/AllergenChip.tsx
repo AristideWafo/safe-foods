@@ -62,7 +62,7 @@ export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, sel
   }
 
   return (
-    <div className={clsx('stitch-allergen-tile relative border bg-white', selected && 'stitch-allergen-selected')}
+    <div className={clsx('stitch-allergen-tile relative border bg-white', selected && 'stitch-allergen-selected', onEdit && onDelete && 'stitch-allergen-managed')}
       style={{ '--allergen-accent': id.startsWith('custom:') ? '#000000' : GRID_COLORS[id] || '#2563eb' } as React.CSSProperties}>
       <button type="button" onClick={onClick} aria-pressed={selected}
         aria-label={`${label}, ${selected ? 'sélectionné' : 'non sélectionné'}`}

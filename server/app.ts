@@ -4,7 +4,7 @@ import { rateLimit } from 'express-rate-limit';
 import { randomUUID } from 'node:crypto';
 import { ApiError } from './errors.js';
 import { parseImage, parseAnalysis } from './image.js';
-import { cleanSynonyms } from '../src/services/Synonyms.js';
+import { cleanSynonyms, cleanSuggestedName } from '../src/services/Synonyms.js';
 import { isRecord } from '../src/services/ProductValidation.js';
 import type { ImageAnalyzer, SynonymSuggester } from './gemini.js';
 
@@ -52,7 +52,9 @@ export const createApp = (options: AppOptions = {}) => {
       if (suggesting) {
         const synonyms = isRecord(raw) ? cleanSynonyms(raw.synonyms, name) : null;
         if (!synonyms) throw new ApiError(422, 'INVALID_SUGGESTIONS', 'Les suggestions reçues sont invalides. Saisissez les autres noms ou réessayez.', true);
-        if (!controller.signal.aborted) res.json({ synonyms });
+        const correctedName = isRecord(raw) && raw.name !== undefined ? cleanSuggestedName(raw.name) : name;
+        if (!correctedName) throw new ApiError(422, 'INVALID_SUGGESTIONS', 'Le nom proposé est invalide. Réessayez.', true);
+        if (!controller.signal.aborted) res.json({ name: correctedName, synonyms });
         return;
       }
       const analysis = parseAnalysis(raw);

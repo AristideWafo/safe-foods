@@ -89,3 +89,12 @@ test('plain-text server failures are reported as service errors rather than unre
     await assert.rejects(suggestSynonyms('cacao', new AbortController().signal), /illisibles/);
   } finally { globalThis.fetch = original; }
 });
+
+ test('corrected allergen name is returned and invalid corrections are rejected', async () => {
+  const app = createApp({ synonymSuggester: async () => ({ name: '  Tournesol  ', synonyms: ['sunflower'] }) });
+  const response = await request(app).post(route).send({ name: 'tournsol' });
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { name: 'Tournesol', synonyms: ['sunflower'] });
+  const invalid = createApp({ synonymSuggester: async () => ({ name: '!!!', synonyms: [] }) });
+  assert.equal((await request(invalid).post(route).send({ name: 'cacao' })).status, 422);
+});

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { Sparkles, LoaderCircle, Plus, X } from 'lucide-react';
-import { suggestSynonyms, MAX_SYNONYMS } from '../../services/Synonyms';
+import { suggestAllergen, MAX_SYNONYMS } from '../../services/Synonyms';
 import type { AllergenDef } from '../../types';
 import { Button } from '../primitives/Button';
 export const CustomAllergenForm = ({ allergen, onDone }: { allergen?: AllergenDef; onDone?: (saved?: boolean) => void }) => {
@@ -37,8 +37,10 @@ export const CustomAllergenForm = ({ allergen, onDone }: { allergen?: AllergenDe
     setLoading(true); setError(''); setSaved(''); setSuggestionStatus(''); setSuggestions([]);
     const timeout = setTimeout(() => controller.abort(), 35000);
     try {
-      const items = await suggestSynonyms(name.trim(), controller.signal);
+      const result = await suggestAllergen(name.trim(), controller.signal);
       if (pending.current !== controller) return;
+      const items = result.synonyms;
+      setName(result.name);
       setSuggestions(items);
       setSuggestionStatus(items.length ? 'Relisez les propositions et ajoutez celles que vous souhaitez rechercher.' : 'Aucun autre nom proposé. Vous pouvez en saisir vous-même.');
     } catch (err) {
@@ -72,7 +74,7 @@ export const CustomAllergenForm = ({ allergen, onDone }: { allergen?: AllergenDe
       </button>
       <span className="text-sm font-bold">{loading ? 'Recherche d’autres noms…' : 'Compléter avec l’IA'}</span>
     </div>
-    <p id={`${id}-ai-help`} className="text-[13px] text-text-secondary">{aiEnabled ? 'Ce bouton envoie uniquement le nom saisi à Google Gemini pour proposer d’autres noms à relire.' : 'Les suggestions IA sont désactivées. Vous pouvez les activer dans la section Intelligence artificielle du profil ou saisir les autres noms vous-même.'}</p>
+    <p id={`${id}-ai-help`} className="text-[13px] text-text-secondary">{aiEnabled ? 'Ce bouton envoie uniquement le nom saisi à Google Gemini pour corriger son orthographe et proposer d’autres noms à relire.' : 'Les suggestions IA sont désactivées. Vous pouvez les activer dans la section Intelligence artificielle du profil ou saisir les autres noms vous-même.'}</p>
     {suggestionStatus && <p role="status" className="text-sm text-text-secondary">{suggestionStatus}</p>}
     {suggestions.length > 0 && <div className="space-y-2">
       <p className="text-sm font-bold">Suggestions à valider</p>
