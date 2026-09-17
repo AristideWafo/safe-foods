@@ -1,10 +1,11 @@
 import type ScanbotSDK from 'scanbot-web-sdk';
+import { normalizeScanbotLicense, scanbotLicenseError } from './ScanbotLicense';
 import type { BarcodeScanner } from './BarcodeScanner';
 type ScanbotHandle = Awaited<ReturnType<ScanbotSDK['createBarcodeScanner']>>;
 export type ScanbotRuntime = Pick<ScanbotSDK, 'getLicenseInfo' | 'createBarcodeScanner'>;
 let sdkPromise: Promise<ScanbotSDK> | undefined;
 const initialize = (licenseKey: string) => {
-  sdkPromise ??= import('scanbot-web-sdk').then(({ default: SDK }) => SDK.initialize({ licenseKey, enginePath: '/scanbot-engine/', allowThreads: false })).catch(error => { sdkPromise = undefined; throw error; });
+  sdkPromise ??= import('scanbot-web-sdk').then(({ default: SDK }) => SDK.initialize({ licenseKey: normalizeScanbotLicense(licenseKey), enginePath: '/scanbot-engine/', allowThreads: false })).catch(error => { sdkPromise = undefined; throw error; });
   return sdkPromise;
 };
 export class ScanbotScanner implements BarcodeScanner {
@@ -14,8 +15,7 @@ export class ScanbotScanner implements BarcodeScanner {
   async start(onCode: (code: string) => void, onError: (error: unknown) => void) {
     const sdk = await this.loadSdk();
     const license = await sdk.getLicenseInfo();
-    if (license.status === 'FAILURE_EXPIRED') throw new Error('La licence d’essai Scanbot a expiré. Vous pouvez saisir le code ou importer une photo.');
-    if (license.status.startsWith('FAILURE')) throw new Error('La licence Scanbot ne permet pas le scan sur cette adresse. Vous pouvez saisir le code ou importer une photo.');
+    if (license.status.startsWith('FAILURE')) throw new Error(`${scanbotLicenseError(license.status)} Vous pouvez saisir le code ou importer une photo.`);
     this.handle = await sdk.createBarcodeScanner({
       containerId: this.containerId, previewMode: 'FILL_IN',
       videoConstraints: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
