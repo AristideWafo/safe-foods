@@ -1,6 +1,6 @@
 # SafeEat
 
-Application React/Express de comparaison des ingrédients et traces d’un produit avec un profil d’allergies. Les codes-barres interrogent Open Food Facts ; les photos sont envoyées à Google Gemini après confirmation. Le résultat est une aide à la lecture et ne garantit pas l’absence d’allergènes.
+Application React/Express de comparaison des ingrédients et traces d’un produit avec un profil d’allergies. Les codes-barres interrogent Open Food Facts ; les photos sont envoyées à Google Gemini après confirmation ou accord mémorisé dans les réglages IA. Le résultat est une aide à la lecture et ne garantit pas l’absence d’allergènes.
 
 ## Parcours : allergène personnalisé et scan d’un produit
 
@@ -82,7 +82,7 @@ sequenceDiagram
     end
 ```
 
-La photo n’est pas envoyée automatiquement : l’utilisateur choisit cette étape et confirme l’envoi. Open Food Facts et Gemini fournissent les données ; le moteur local produit le verdict. Une absence de correspondance pour un allergène personnalisé reste inconclusive, même après relecture de l’étiquette.
+L’utilisateur choisit toujours la photo à importer ou à prendre. Par défaut, il confirme chaque envoi ; le réglage « Toujours envoyer les photos à l’IA » permet de mémoriser cet accord dans le navigateur. Open Food Facts et Gemini fournissent les données ; le moteur local produit le verdict. Une absence de correspondance pour un allergène personnalisé reste inconclusive, même après relecture de l’étiquette.
 
 ## Installation et lancement
 
@@ -167,3 +167,11 @@ Ces propositions ne sont pas exhaustives et peuvent être inexactes ; elles ne c
 `vercel.json` publie `dist/client` et dirige `/api/*` vers la fonction Express `api/index.ts`. Les routes React (par exemple `/profile`) utilisent le repli vers `index.html`, qui exclut les routes API. Le serveur local et la fonction utilisent la même configuration.
 
 Configurer `GEMINI_API_KEY` dans l’environnement **Preview** du projet Vercel, ainsi que `GEMINI_MODEL` si nécessaire, puis redéployer. La clé reste côté serveur et ne doit pas être préfixée par `VITE_`. `/api/health` doit renvoyer du JSON ; `/api/suggest-synonyms` doit renvoyer une erreur JSON explicite si la clé manque, jamais une page 404 statique. Les quotas en mémoire sont propres à chaque instance : ils ne constituent pas une limite globale persistante sur Vercel. Le corps d’une requête reste également soumis à la limite de la plateforme, notamment pour les photos.
+
+## Réglages IA
+
+La section « Intelligence artificielle » du profil regroupe l’analyse des photos, l’envoi sans confirmation et l’accès aux suggestions de synonymes. Les choix restent locaux au navigateur, séparés du profil d’allergies. Les anciens profils reçoivent les réglages par défaut : analyse photo et suggestions disponibles, confirmation obligatoire pour chaque photo.
+
+« Toujours envoyer les photos à l’IA » vaut uniquement pour une photo explicitement choisie ou prise par l’utilisateur, jamais pour une capture automatique. Le scanner affiche ce mode et un lien vers les réglages. Désactiver ce choix rétablit la confirmation ; désactiver l’analyse photo bloque les envois et révoque également l’accord mémorisé. Le réactiver ne rétablit pas cet accord. Les vérifications depuis un résultat gardent la comparaison avec l’observation précédente dans les deux modes.
+
+Désactiver les suggestions IA bloque leur demande et annule une demande en cours ; les synonymes déjà enregistrés et la saisie manuelle restent disponibles. Ces réglages ne modifient ni le verdict ni le dictionnaire. Les photos sont transmises à Google Gemini, sans stockage sur le serveur SafeEat. Le nom saisi pour les suggestions est également transmis à ce fournisseur à la demande.

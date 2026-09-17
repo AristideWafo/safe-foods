@@ -1,18 +1,22 @@
+import { useLocation } from 'react-router-dom';
 import { Icon } from '../components/Icon';
 import { useStore } from '../store/useStore';
 import { ALLERGENS } from '../constants/allergens';
 import { AppHeader } from '../components/navigation/AppHeader';
 import { AllergenChip } from '../components/allergies/AllergenChip';
 import { ShieldCheck, UserRound, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BottomSheet } from '../components/layout/BottomSheet';
 import { DetectionPreferences } from '../components/profile/DetectionPreferences';
+import { AIPreferencesSection } from '../components/profile/AIPreferencesSection';
 import { CustomAllergenForm } from '../components/allergies/CustomAllergenForm';
 
 const PRIMARY_ALLERGENS = ['gluten', 'eggs', 'milk', 'peanuts', 'soybeans', 'crustaceans'];
 
 export const Profile = () => {
   const { allergies, history, customAllergens, toggleAllergy, resetProfile } = useStore();
+  const { hash } = useLocation();
+  useEffect(() => { if (hash === '#ai-preferences') document.getElementById('ai-preferences')?.scrollIntoView({ block: 'start' }); }, [hash]);
   const [moreAllergens, setMoreAllergens] = useState(false);
 
   return (
@@ -43,6 +47,7 @@ export const Profile = () => {
         <p className="text-[13px] text-text-secondary mb-4">Votre profil et les 50 dernières analyses sont enregistrés uniquement dans ce navigateur, sans synchronisation entre appareils.</p>
         {allergies.length > 0 && <button className="text-[14px] font-bold underline mb-6" onClick={() => { if (window.confirm("Retirer toutes les allergies du profil ? Les analyses seront conservées et recalculées.")) resetProfile(); }}>Réinitialiser mes allergies</button>}
         <aside className="rounded-[28px] bg-[#dcfce7] p-5 flex items-center gap-3 text-[14px] text-text-secondary"><ShieldCheck className="w-7 h-7 shrink-0 text-verified" /><div><h3 className="font-display font-bold text-text-primary text-[18px] mb-1">Les traces sont aussi vérifiées</h3>Les mentions de traces et les ingrédients incertains déclenchent un résultat à vérifier. Consultez toujours les preuves et l’étiquette.</div></aside>
+        <AIPreferencesSection />
         <DetectionPreferences />
       </div>
       <BottomSheet isOpen={moreAllergens} onClose={() => setMoreAllergens(false)} title="Personnaliser mes allergènes"><p className="text-[14px] text-text-secondary mb-4">Sélectionnez un autre allergène ou ajoutez le vôtre.</p><div className="stitch-allergen-grid">{ALLERGENS.filter(allergen => !PRIMARY_ALLERGENS.includes(allergen.id)).map(allergen => <AllergenChip key={allergen.id} id={allergen.id} label={allergen.label} icon={<Icon name={allergen.icon} />} selected={allergies.includes(allergen.id)} onClick={() => toggleAllergy(allergen.id)} />)}</div><CustomAllergenForm /></BottomSheet>

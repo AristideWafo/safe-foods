@@ -5,6 +5,7 @@ import { suggestSynonyms, MAX_SYNONYMS } from '../../services/Synonyms';
 import { Button } from '../primitives/Button';
 export const CustomAllergenForm = () => {
   const id = useId();
+  const aiEnabled = useStore(state => state.aiPreferences.synonymSuggestions);
   const add = useStore(state => state.addCustomAllergen);
   const [name, setName] = useState('');
   const [aliases, setAliases] = useState('');
@@ -15,11 +16,18 @@ export const CustomAllergenForm = () => {
   const [suggestionStatus, setSuggestionStatus] = useState('');
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
+  useEffect(() => useStore.subscribe((state, previous) => {
+    if (!state.aiPreferences.synonymSuggestions && previous.aiPreferences.synonymSuggestions) {
+      pending.current?.abort(); pending.current = null;
+      setLoading(false); setSuggestions([]); setSuggestionStatus('');
+    }
+  }), []);
   const cancelSuggestions = () => {
     pending.current?.abort(); pending.current = null;
     setLoading(false); setSuggestions([]); setSuggestionStatus('');
   };
   const suggest = async () => {
+    if (!useStore.getState().aiPreferences.synonymSuggestions) return;
     if (name.trim().length < 2) { setError('Saisissez d’abord le nom de l’ingrédient.'); return; }
     pending.current?.abort();
     const controller = new AbortController(); pending.current = controller;
@@ -56,12 +64,12 @@ export const CustomAllergenForm = () => {
     <label htmlFor={`${id}-name`} className="block text-[14px] font-bold">Nom de l’ingrédient ou additif</label>
     <input id={`${id}-name`} required minLength={2} maxLength={60} value={name} onChange={event => { cancelSuggestions(); setName(event.target.value); setError(''); setSaved(''); }} placeholder="Ex. : kiwi" className="w-full rounded-2xl bg-background border border-border-subtle px-4 py-3" aria-describedby={`${id}-help`} />
     <div className="flex items-center gap-3">
-      <button type="button" onClick={() => void suggest()} disabled={loading || name.trim().length < 2} aria-label="Compléter avec l’IA" title="Compléter avec l’IA" aria-describedby={`${id}-ai-help`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50">
+      <button type="button" onClick={() => void suggest()} disabled={!aiEnabled || loading || name.trim().length < 2} aria-label="Compléter avec l’IA" title="Compléter avec l’IA" aria-describedby={`${id}-ai-help`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50">
         {loading ? <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" /> : <Sparkles className="h-5 w-5" aria-hidden="true" />}
       </button>
       <span className="text-sm font-bold">{loading ? 'Recherche d’autres noms…' : 'Compléter avec l’IA'}</span>
     </div>
-    <p id={`${id}-ai-help`} className="text-[13px] text-text-secondary">Ce bouton envoie uniquement le nom saisi à Google Gemini pour proposer d’autres noms à relire.</p>
+    <p id={`${id}-ai-help`} className="text-[13px] text-text-secondary">{aiEnabled ? 'Ce bouton envoie uniquement le nom saisi à Google Gemini pour proposer d’autres noms à relire.' : 'Les suggestions IA sont désactivées. Vous pouvez les activer dans la section Intelligence artificielle du profil ou saisir les autres noms vous-même.'}</p>
     {suggestionStatus && <p role="status" className="text-sm text-text-secondary">{suggestionStatus}</p>}
     {suggestions.length > 0 && <div className="space-y-2">
       <p className="text-sm font-bold">Suggestions à valider</p>
