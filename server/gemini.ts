@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
-import { ALLERGENS } from '../src/constants/allergens';
-import { ApiError } from './errors';
+import { ALLERGENS } from '../src/constants/allergens.js';
+import { ApiError } from './errors.js';
 
 export type ImageAnalyzer = (image: { data: string; mimeType: string }, signal: AbortSignal) => Promise<unknown>;
 export const createGeminiAnalyzer = (apiKey: string, model: string, timeoutMs: number): ImageAnalyzer => {

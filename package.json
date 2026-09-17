@@ -12,8 +12,9 @@
     "lint": "eslint . --max-warnings 0",
     "test": "node --import tsx --import ./tests/setup.mjs --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "smoke": "node scripts/smoke.mjs"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run check:api",
+    "smoke": "node scripts/smoke.mjs",
+    "check:api": "tsc -p tsconfig.api.json && node scripts/check-api-runtime.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

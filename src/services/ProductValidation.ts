@@ -1,4 +1,4 @@
-import type { Product } from '../types';
+import type { Product } from '../types/index.js';
 export const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 const tags = (value: unknown): string[] | null => value === undefined ? [] : Array.isArray(value) && value.every(v => typeof v === 'string') ? value : null;
 export const parseProduct = (value: unknown): Product | null => {

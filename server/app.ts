@@ -2,11 +2,11 @@ import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { randomUUID } from 'node:crypto';
-import { ApiError } from './errors';
-import { parseImage, parseAnalysis } from './image';
-import { cleanSynonyms } from '../src/services/Synonyms';
-import { isRecord } from '../src/services/ProductValidation';
-import type { ImageAnalyzer, SynonymSuggester } from './gemini';
+import { ApiError } from './errors.js';
+import { parseImage, parseAnalysis } from './image.js';
+import { cleanSynonyms } from '../src/services/Synonyms.js';
+import { isRecord } from '../src/services/ProductValidation.js';
+import type { ImageAnalyzer, SynonymSuggester } from './gemini.js';
 
 export interface AppOptions { analyzer?: ImageAnalyzer; synonymSuggester?: SynonymSuggester; model?: string; timeoutMs?: number; concurrency?: number; dailyLimit?: number; trustProxy?: number; rateLimit?: number; }
 export const createApp = (options: AppOptions = {}) => {

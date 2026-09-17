@@ -1,4 +1,4 @@
-import { AllergenDef } from '../types';
+import type { AllergenDef } from '../types/index.js';
 
 export const ALLERGENS: AllergenDef[] = [
   { id: 'gluten', label: 'Gluten', icon: 'Wheat', offTags: ['en:gluten', 'fr:gluten', 'en:wheat', 'fr:blé', 'fr:ble', 'en:oats', 'en:barley', 'en:rye'] },
@@ -19,7 +19,7 @@ export const ALLERGENS: AllergenDef[] = [
 
 // Ingredient vocabulary is separate from database taxonomy tags.
 // This is a conservative matching aid, not a complete ingredient ontology.
-export const INGREDIENT_KEYWORDS: Partial<Record<import('../types').AllergenId, string[]>> = {
+export const INGREDIENT_KEYWORDS: Partial<Record<import('../types/index.js').AllergenId, string[]>> = {
   gluten: ['gluten', 'blé', 'wheat', 'orge', 'barley', 'seigle', 'rye', 'avoine', 'oat', 'épeautre', 'spelt', 'kamut', 'triticale'],
   crustaceans: ['crustacé', 'crustacean', 'crevette', 'shrimp', 'prawn', 'crabe', 'crab', 'homard', 'lobster', 'langoustine', 'écrevisse'],
   eggs: ['œuf', 'oeuf', 'egg', 'ovalbumine', 'albumen'],

@@ -1,6 +1,6 @@
-import { config } from './config';
-import { createApp } from './app';
-import { createGeminiAnalyzer, createGeminiSynonymSuggester } from './gemini';
+import { config } from './config.js';
+import { createApp } from './app.js';
+import { createGeminiAnalyzer, createGeminiSynonymSuggester } from './gemini.js';
 
 // Shared API setup for the local server and the Vercel function; no listening socket here.
 export const createConfiguredApp = (trustProxy = config.trustProxy) => {

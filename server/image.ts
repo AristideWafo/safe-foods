@@ -1,5 +1,5 @@
-import { ApiError } from './errors';
-import { ALLERGENS } from '../src/constants/allergens';
+import { ApiError } from './errors.js';
+import { ALLERGENS } from '../src/constants/allergens.js';
 
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 export const parseImage = (value: unknown) => {

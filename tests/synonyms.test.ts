@@ -75,3 +75,17 @@ test('AI badge is accessible and inactive until a name is entered', () => {
   assert.match(html, /disabled="" aria-label="Compléter avec l’IA"/);
   assert.match(html, /bg-blue-600/); assert.match(html, /Google Gemini/);
 });
+
+test('plain-text server failures are reported as service errors rather than unreadable AI', async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const [status, message] of [[500, /momentanément indisponibles/], [404, /pas disponible sur cette version/]] as const) {
+      globalThis.fetch = async () => new Response('FUNCTION_INVOCATION_FAILED', { status });
+      await assert.rejects(suggestSynonyms('cacao', new AbortController().signal), message);
+    }
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'Quota atteint.' } }), { status: 429 });
+    await assert.rejects(suggestSynonyms('cacao', new AbortController().signal), /Quota atteint/);
+    globalThis.fetch = async () => new Response('not JSON', { status: 200 });
+    await assert.rejects(suggestSynonyms('cacao', new AbortController().signal), /illisibles/);
+  } finally { globalThis.fetch = original; }
+});
