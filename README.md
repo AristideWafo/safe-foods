@@ -175,3 +175,7 @@ La section « Intelligence artificielle » du profil regroupe l’analyse des ph
 « Toujours envoyer les photos à l’IA » vaut uniquement pour une photo explicitement choisie ou prise par l’utilisateur, jamais pour une capture automatique. Le scanner affiche ce mode et un lien vers les réglages. Désactiver ce choix rétablit la confirmation ; désactiver l’analyse photo bloque les envois et révoque également l’accord mémorisé. Le réactiver ne rétablit pas cet accord. Les vérifications depuis un résultat gardent la comparaison avec l’observation précédente dans les deux modes.
 
 Désactiver les suggestions IA bloque leur demande et annule une demande en cours ; les synonymes déjà enregistrés et la saisie manuelle restent disponibles. Ces réglages ne modifient ni le verdict ni le dictionnaire. Les photos sont transmises à Google Gemini, sans stockage sur le serveur SafeEat. Le nom saisi pour les suggestions est également transmis à ce fournisseur à la demande.
+
+### Vérifier le démarrage de l’API Vercel
+
+`npm run check:api` compile le point d’entrée et ses dépendances avec les règles Node ESM, puis démarre le code JavaScript compilé dans Node, sans `tsx` ni Vite. Ce contrôle fait partie de `npm run check` et vérifie `/api/health` ainsi que la validation des demandes de synonymes. Les imports relatifs du graphe serveur utilisent des extensions `.js` explicites pour que le code émis reste résoluble par Node en production.

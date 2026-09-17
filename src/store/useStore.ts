@@ -10,6 +10,8 @@ import { isRecord, parseProduct } from '../services/ProductValidation';
 export interface SafeEatState {
   customAllergens: AllergenDef[];
   addCustomAllergen: (label: string, keywords?: string[]) => void;
+  updateCustomAllergen: (id: AllergenId, label: string, keywords?: string[]) => void;
+  removeCustomAllergen: (id: AllergenId) => void;
   preferences: { traceAlerts: boolean; sensoryAlerts: boolean };
   setPreference: (key: 'traceAlerts' | 'sensoryAlerts', enabled: boolean) => void;
   aiPreferences: AIPreferences;
@@ -23,10 +25,18 @@ export interface SafeEatState {
   resetProfile: () => void;
   toggleFavorite: (id: string) => void;
 }
+const customDefinition = (input: string, aliases: string[], custom: AllergenDef[], id?: AllergenId) => {
+  const label = input.trim();
+  if (label.length < 2 || label.length > 60 || !/[\p{L}\p{N}]/u.test(label)) throw new Error('Saisissez un nom de 2 à 60 caractères.');
+  if (getAllergenDefinitions(custom).some(a => a.id !== id && normalizeIngredientText(a.label) === normalizeIngredientText(label))) throw new Error('Cet allergène existe déjà.');
+  const keywords = [...new Set([label, ...aliases.map(k => k.trim()).filter(Boolean)])];
+  if (keywords.length > 20 || keywords.some(k => k.length > 60)) throw new Error('Utilisez au plus 19 mots-clés supplémentaires de 60 caractères maximum.');
+  return { label, keywords };
+};
 const parseAllergies = (value: unknown, custom: AllergenDef[]): AllergenId[] => getAllergenDefinitions(custom).filter(a => Array.isArray(value) && value.includes(a.id)).map(a => a.id);
 export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergies' | 'history' | 'preferences' | 'customAllergens' | 'aiPreferences'> => {
   const state = isRecord(value) ? value : {};
-  const customAllergens = [...DEFAULT_CUSTOM_ALLERGENS];
+  const customAllergens: AllergenDef[] = Array.isArray(state.customAllergens) ? [] : [...DEFAULT_CUSTOM_ALLERGENS];
   if (Array.isArray(state.customAllergens)) for (const entry of state.customAllergens.slice(0, 30)) {
     if (customAllergens.length >= 30) break;
     if (!isRecord(entry) || typeof entry.id !== 'string' || !/^custom:[a-zA-Z0-9-]{1,64}$/.test(entry.id) || typeof entry.label !== 'string' || !entry.label.trim() || entry.label.length > 60 || !Array.isArray(entry.keywords) || !entry.keywords.length || entry.keywords.length > 20 || !entry.keywords.every(k => typeof k === 'string' && k.trim().length > 0 && k.length <= 60)) continue;
@@ -53,16 +63,26 @@ export const useStore = create<SafeEatState>()(persist((set, get) => ({
   allergies: [], history: [],
   customAllergens: DEFAULT_CUSTOM_ALLERGENS,
   addCustomAllergen: (input, aliases = []) => {
-    const label = input.trim();
     const state = get();
-    if (label.length < 2 || label.length > 60 || !/[\p{L}\p{N}]/u.test(label)) throw new Error('Saisissez un nom de 2 à 60 caractères.');
     if (state.customAllergens.length >= 30) throw new Error('La limite de 30 allergènes personnalisés est atteinte.');
-    if (getAllergenDefinitions(state.customAllergens).some(a => normalizeIngredientText(a.label) === normalizeIngredientText(label))) throw new Error('Cet allergène existe déjà.');
-    const keywords = [...new Set([label, ...aliases.map(k => k.trim()).filter(Boolean)])];
-    if (keywords.length > 20 || keywords.some(k => k.length > 60)) throw new Error('Utilisez au plus 19 mots-clés supplémentaires de 60 caractères maximum.');
+    const { label, keywords } = customDefinition(input, aliases, state.customAllergens);
     const id: AllergenId = `custom:${crypto.randomUUID()}`;
     const customAllergens: AllergenDef[] = [...state.customAllergens, { id, label, keywords, icon: 'Flower2', offTags: [] }];
     const allergies = [...state.allergies, id];
+    set({ customAllergens, allergies, history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, allergies, customAllergens) })) });
+  },
+  updateCustomAllergen: (id, input, aliases = []) => {
+    const state = get();
+    if (!state.customAllergens.some(a => a.id === id)) throw new Error('Cet allergène personnalisé n’existe plus.');
+    const definition = customDefinition(input, aliases, state.customAllergens, id);
+    const customAllergens = state.customAllergens.map(a => a.id === id ? { ...a, ...definition } : a);
+    set({ customAllergens, history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, state.allergies, customAllergens) })) });
+  },
+  removeCustomAllergen: id => {
+    const state = get();
+    if (!state.customAllergens.some(a => a.id === id)) throw new Error('Cet allergène personnalisé n’existe plus.');
+    const customAllergens = state.customAllergens.filter(a => a.id !== id);
+    const allergies = state.allergies.filter(a => a !== id);
     set({ customAllergens, allergies, history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, allergies, customAllergens) })) });
   },
   aiPreferences: { ...DEFAULT_AI_PREFERENCES },

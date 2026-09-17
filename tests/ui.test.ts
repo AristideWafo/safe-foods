@@ -55,3 +55,9 @@ test('inline barcode form accepts valid codes and disables invalid or busy submi
   assert.match(render('3017620422003', true), /disabled=""/);
   assert.doesNotMatch(render('3017620422003'), /<dialog/);
 });
+
+test('profile limits the initial allergen grid to six cards and shows a count in the heading', () => {
+  const html = renderToStaticMarkup(createElement(MemoryRouter, null, createElement(Profile)));
+  assert.equal((html.match(/aria-pressed=/g) || []).length, 6);
+  assert.match(html, /Mes Allergènes &amp; Intolérances<span[^>]*>\d+<\/span>/);
+});

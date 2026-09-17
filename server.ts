@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'node:path';
-import { config } from './server/config';
-import { createConfiguredApp } from './server/runtime';
+import { config } from './server/config.js';
+import { createConfiguredApp } from './server/runtime.js';
 
 async function startServer() {
   const app = createConfiguredApp();
