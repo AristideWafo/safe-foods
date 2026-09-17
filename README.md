@@ -179,3 +179,11 @@ Désactiver les suggestions IA bloque leur demande et annule une demande en cour
 ### Vérifier le démarrage de l’API Vercel
 
 `npm run check:api` compile le point d’entrée et ses dépendances avec les règles Node ESM, puis démarre le code JavaScript compilé dans Node, sans `tsx` ni Vite. Ce contrôle fait partie de `npm run check` et vérifie `/api/health` ainsi que la validation des demandes de synonymes. Les imports relatifs du graphe serveur utilisent des extensions `.js` explicites pour que le code émis reste résoluble par Node en production.
+
+### Moteur de lecture des codes-barres
+
+La page Scanner passe par l’interface `BarcodeScanner` (`src/services/scanner/`). Scanbot Web SDK est le moteur par défaut ; `VITE_BARCODE_SCANNER=html5` réactive html5-qrcode à la prochaine construction. Les deux moteurs lisent EAN-8, EAN-13 et UPC-A et proposent le même cycle démarrage/arrêt et le contrôle du flash lorsque la caméra le permet.
+
+La licence temporaire fournie couvre `localhost` et `safe-foods.vercel.app`. Pour la remplacer, définir `VITE_SCANBOT_LICENSE_KEY` et reconstruire le site. Cette licence est destinée au navigateur et apparaît dans le client compilé. Une URL de preview Vercel nécessite une licence couvrant son domaine. Après expiration, le scanner affiche une erreur ; la saisie manuelle et l’import photo restent accessibles. Le changement de moteur est explicite, sans bascule automatique qui masquerait un problème de licence.
+
+Les fichiers JS/WASM du moteur barcode-only sont copiés depuis le paquet npm vers `public/scanbot-engine/` avant le développement et la construction, puis servis avec le site. Ils sont générés et exclus du dépôt. Le SDK est chargé à l’ouverture du scanner ; le mode multithread est désactivé pour fonctionner sans en-têtes d’isolation supplémentaires.
