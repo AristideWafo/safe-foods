@@ -1,5 +1,4 @@
 import { useId } from 'react';
-import { Sparkles } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { Switch } from '../primitives/Switch';
 import { SurfaceCard } from '../layout/SurfaceCard';
@@ -13,7 +12,7 @@ export const AIPreferencesSection = () => {
     { key: 'synonymSuggestions', title: 'Suggestions de synonymes par l’IA', description: 'Afficher le badge pour demander d’autres noms à Google Gemini. Seul le nom saisi est envoyé, à votre demande.' },
   ] as const;
   return <section id="ai-preferences" className="mt-7 mb-7 scroll-mt-6" aria-labelledby={`${id}-heading`}>
-    <h2 id={`${id}-heading`} className="font-display font-semibold text-[22px] mb-4 flex items-center gap-2"><Sparkles className="w-6 h-6 text-blue-600" aria-hidden="true" />Intelligence artificielle</h2>
+    <h2 id={`${id}-heading`} className="font-display font-semibold text-[22px] mb-4 flex items-center gap-2">Intelligence artificielle</h2>
     <SurfaceCard>
       {rows.map(row => <div key={row.key} className="flex items-start gap-4 py-4 border-b border-border-subtle last:border-0">
         <div className="flex-1"><h3 id={`${id}-${row.key}`} className="font-bold text-sm">{row.title}</h3><p id={`${id}-${row.key}-description`} className="text-[13px] text-text-secondary mt-1 leading-relaxed">{row.description}</p></div>
