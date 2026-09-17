@@ -1,6 +1,6 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState } from 'react';
 import { clsx } from 'clsx';
-import { Check, Plus } from 'lucide-react';
+import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
 import { AllergenId } from '../../types';
 
 export interface AllergenChipProps {
@@ -10,6 +10,8 @@ export interface AllergenChipProps {
   selected: boolean;
   onClick?: () => void;
   variant?: 'list' | 'grid';
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const ALLERGEN_COLORS: Record<string, string> = {
@@ -28,9 +30,15 @@ const ALLERGEN_COLORS: Record<string, string> = {
   lupin: 'bg-warning text-black border-warning',
   molluscs: 'bg-text-secondary text-white border-text-secondary',
 };
-const GRID_COLORS: Partial<Record<AllergenId, string>> = { gluten: '#e92125', eggs: '#df8000', milk: '#2563eb' };
+const GRID_COLORS: Partial<Record<AllergenId, string>> = {
+  gluten: '#e92125', eggs: '#df8000', milk: '#2563eb', peanuts: '#df8000',
+  nuts: '#3f6212', soybeans: '#8b5cf6', fish: '#2563eb', crustaceans: '#e92125',
+  celery: '#3f6212', mustard: '#df8000', sesame: '#8b5cf6', sulphites: '#2563eb',
+  lupin: '#3f6212', molluscs: '#8b5cf6',
+};
 
-export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, selected, onClick, variant = 'grid' }) => {
+export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, selected, onClick, variant = 'grid', onEdit, onDelete }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
   if (variant === 'list') {
     const colorClass = ALLERGEN_COLORS[id] || 'bg-text-primary text-white border-text-primary';
     return (
@@ -53,39 +61,25 @@ export const AllergenChip: React.FC<AllergenChipProps> = ({ id, label, icon, sel
     );
   }
 
-  // Grid variant for Profile
   return (
-    <button
-      onClick={onClick}
-      aria-pressed={selected}
-      aria-label={`${label}, ${selected ? "sélectionné" : "non sélectionné"}`}
-      className={clsx(
-        "stitch-allergen-tile relative flex flex-col border transition-all duration-[180ms] focus:outline-none focus-visible:ring-[3px] focus-visible:ring-primary-300 text-left",
-        selected ? "bg-white" : "bg-[#fffdfd] hover:bg-white"
-      )}
-      style={{ '--allergen-accent': GRID_COLORS[id] || '#2563eb' } as React.CSSProperties}
-    >
-      <div className={clsx(
-        "stitch-allergen-icon rounded-full flex items-center justify-center transition-colors",
-        selected ? "bg-[var(--allergen-accent)] text-white" : "bg-[#e7e8ec] text-[#434655]"
-      )}>
-        <span className="[&>svg]:w-6 [&>svg]:h-6">{icon}</span>
-      </div>
-      
-      <span className={clsx(
-        "stitch-allergen-label font-bold leading-tight",
-        selected ? "text-text-primary" : "text-text-secondary"
-      )}>
-        {label}
-      </span>
-      <span className={clsx('stitch-allergen-status mt-1 font-bold', selected ? 'text-[var(--allergen-accent)]' : 'text-text-muted')}>{selected ? 'Actif' : 'Inactif'}</span>
-
-      <div className={clsx(
-        "stitch-allergen-toggle absolute rounded-full flex items-center justify-center transition-all duration-[180ms]",
-        selected ? "bg-[var(--allergen-accent)] text-white" : "bg-[#f2f3f5] text-[#434655]"
-      )}>
-        {selected ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-      </div>
-    </button>
+    <div className={clsx('stitch-allergen-tile relative border bg-white', selected && 'stitch-allergen-selected')}
+      style={{ '--allergen-accent': id.startsWith('custom:') ? '#000000' : GRID_COLORS[id] || '#2563eb' } as React.CSSProperties}>
+      <button type="button" onClick={onClick} aria-pressed={selected}
+        aria-label={`${label}, ${selected ? 'sélectionné' : 'non sélectionné'}`}
+        className="stitch-allergen-select flex flex-col text-left rounded-[22px] focus-visible:outline-primary-600">
+        <span className={clsx('stitch-allergen-icon rounded-full flex items-center justify-center transition-colors',
+          selected ? 'bg-[var(--allergen-accent)] text-white' : 'bg-[#e7e8ec] text-[#434655]')}>
+          {icon}
+        </span>
+        <span className="stitch-allergen-label font-bold leading-tight text-text-primary">{label}</span>
+        <span className={clsx('stitch-allergen-status mt-1 font-bold', selected ? 'text-[var(--allergen-accent)]' : 'text-text-muted')}>{selected ? 'Actif' : 'Inactif'}</span>
+      </button>
+      {onEdit && onDelete && <div className="stitch-allergen-actions">
+        {menuOpen ? <>
+          <button type="button" aria-label={`Modifier ${label}`} onClick={() => { setMenuOpen(false); onEdit(); }}><Pencil aria-hidden="true" /></button>
+          <button type="button" aria-label={`Supprimer ${label}`} onClick={() => { setMenuOpen(false); onDelete(); }}><Trash2 aria-hidden="true" /></button>
+        </> : <button type="button" aria-label={`Options pour ${label}`} aria-expanded={false} onClick={() => setMenuOpen(true)}><Ellipsis aria-hidden="true" /></button>}
+      </div>}
+    </div>
   );
 };

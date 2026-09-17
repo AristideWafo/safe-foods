@@ -6,8 +6,8 @@ import type { AllergenId } from '../types';
 import { ALLERGENS } from '../constants/allergens';
 import { AppHeader } from '../components/navigation/AppHeader';
 import { AllergenChip } from '../components/allergies/AllergenChip';
-import { ShieldCheck, UserRound, Plus, Pencil, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ShieldCheck, UserRound, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { BottomSheet } from '../components/layout/BottomSheet';
 import { DetectionPreferences } from '../components/profile/DetectionPreferences';
 import { AIPreferencesSection } from '../components/profile/AIPreferencesSection';
@@ -24,6 +24,8 @@ export const Profile = () => {
   const [editing, setEditing] = useState<AllergenId | null>(null);
   const [deleting, setDeleting] = useState<AllergenId | null>(null);
   const [notice, setNotice] = useState('');
+  const deleteConfirmation = useRef<HTMLButtonElement>(null);
+  useEffect(() => { if (deleting) deleteConfirmation.current?.focus(); }, [deleting]);
   const ordered = [...customAllergens, ...PRIMARY_ALLERGENS.map(id => ALLERGENS.find(a => a.id === id)!), ...ALLERGENS.filter(a => !PRIMARY_ALLERGENS.includes(a.id))];
   const visible = [...ordered.filter(a => allergies.includes(a.id)), ...ordered.filter(a => !allergies.includes(a.id))].slice(0, 6);
   const edited = customAllergens.find(a => a.id === editing);
@@ -62,14 +64,13 @@ export const Profile = () => {
         {notice && <p role="status" className="text-sm text-verified mb-4">{notice}</p>}
         {edited ? <CustomAllergenForm key={edited.id} allergen={edited} onDone={saved => { setEditing(null); setNotice(saved ? 'Modifications enregistrées.' : ''); }} /> : <>
           <p className="text-[14px] text-text-secondary mb-4">Sélectionnez vos allergènes ou modifiez ceux que vous avez ajoutés.</p>
-          <div className="stitch-allergen-grid">{ordered.map(allergen => <div key={allergen.id} className="min-w-0">
-            <AllergenChip id={allergen.id} label={allergen.label} icon={<Icon name={allergen.icon} />} selected={allergies.includes(allergen.id)} onClick={() => toggleAllergy(allergen.id)} />
-            {customAllergens.some(a => a.id === allergen.id) && <div className="flex justify-center gap-2 mt-2">
-              <button type="button" aria-label={`Modifier ${allergen.label}`} className="p-2 rounded-full text-primary-600 hover:bg-primary-50" onClick={() => { setEditing(allergen.id); setNotice(''); }}><Pencil className="w-4 h-4" aria-hidden="true" /></button>
-              <button type="button" aria-label={`Supprimer ${allergen.label}`} className="p-2 rounded-full text-danger hover:bg-danger/10" onClick={() => { setDeleting(allergen.id); setNotice(''); }}><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
-            </div>}
-            {deleting === allergen.id && <div className="mt-2 text-sm space-y-2"><p>Supprimer {allergen.label} et ses autres noms ?</p><button type="button" className="font-bold text-danger underline" onClick={() => { removeCustomAllergen(allergen.id); setDeleting(null); setNotice(`${allergen.label} supprimé.`); }}>Confirmer la suppression</button><button type="button" className="block underline" onClick={() => setDeleting(null)}>Annuler</button></div>}
-          </div>)}</div>
+          <div className="stitch-allergen-grid">{ordered.map(allergen => <AllergenChip key={allergen.id}
+            id={allergen.id} label={allergen.label} icon={<Icon name={allergen.icon} />}
+            selected={allergies.includes(allergen.id)} onClick={() => toggleAllergy(allergen.id)}
+            onEdit={customAllergens.some(a => a.id === allergen.id) ? () => { setEditing(allergen.id); setNotice(''); } : undefined}
+            onDelete={customAllergens.some(a => a.id === allergen.id) ? () => { setDeleting(allergen.id); setNotice(''); } : undefined}
+          />)}</div>
+          {deleting && <div className="mt-3 text-sm space-y-2"><p>Supprimer {customAllergens.find(a => a.id === deleting)?.label} et ses autres noms ?</p><button ref={deleteConfirmation} type="button" className="font-bold text-danger underline" onClick={() => { removeCustomAllergen(deleting); setDeleting(null); setNotice('Allergène supprimé.'); }}>Confirmer la suppression</button><button type="button" className="block underline" onClick={() => setDeleting(null)}>Annuler</button></div>}
           <CustomAllergenForm />
         </>}
       </BottomSheet>
