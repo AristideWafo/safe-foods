@@ -1,14 +1,10 @@
 import express from 'express';
 import path from 'node:path';
 import { config } from './server/config';
-import { createApp } from './server/app';
-import { createGeminiAnalyzer, createGeminiSynonymSuggester } from './server/gemini';
+import { createConfiguredApp } from './server/runtime';
 
 async function startServer() {
-  const analyzer = config.apiKey && config.apiKey !== 'MY_GEMINI_API_KEY'
-    ? createGeminiAnalyzer(config.apiKey, config.model, config.timeoutMs) : undefined;
-  const synonymSuggester = analyzer ? createGeminiSynonymSuggester(config.apiKey!, config.model, config.timeoutMs) : undefined;
-  const app = createApp({ ...config, analyzer, synonymSuggester });
+  const app = createConfiguredApp();
   let closeVite: (() => Promise<void>) | undefined;
   if (!config.production) {
     const { createServer } = await import('vite');
@@ -24,7 +20,7 @@ async function startServer() {
     });
   }
   const server = app.listen(config.port, config.host, () => {
-    console.log(`SafeEat: http://${config.host}:${config.port} (${config.production ? 'production' : 'development'}, photo ${analyzer ? 'configured' : 'disabled'})`);
+    console.log(`SafeEat: http://${config.host}:${config.port} (${config.production ? 'production' : 'development'}, photo ${config.apiKey && config.apiKey !== 'MY_GEMINI_API_KEY' ? 'configured' : 'disabled'})`);
   });
   server.on('error', () => { console.error('Le serveur ne peut pas démarrer. Vérifiez le port et la configuration.'); process.exitCode = 1; });
   const shutdown = () => {
