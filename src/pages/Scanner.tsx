@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { createBarcodeScanner, scannerProvider } from '../services/scanner/BarcodeScanner';
+import type { BarcodeScanner } from '../services/scanner/BarcodeScanner';
+import { SCANBOT_TRIAL_LICENSE } from '../services/scanner/TrialLicense';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, Loader2, ArrowLeft, MoreVertical, Scan, Image as ImageIcon, Keyboard, Zap, ZapOff } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -49,7 +51,7 @@ export const Scanner = () => {
   const [flashSupported, setFlashSupported] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<() => Promise<string>>();
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<BarcodeScanner | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const processing = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
@@ -104,23 +106,25 @@ export const Scanner = () => {
       try {
         if (scannerRef.current?.isScanning) await scannerRef.current.stop();
         if (!live) return;
-        scannerRef.current ??= new Html5Qrcode('reader-container', { formatsToSupport: [Html5QrcodeSupportedFormats.EAN_8, Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.UPC_A], verbose: false });
-        await scannerRef.current.start({ facingMode: 'environment' }, { fps: 10, aspectRatio: 1.25 }, scanBarcode, () => {});
+        scannerRef.current ??= await createBarcodeScanner('reader-container', scannerProvider(import.meta.env.VITE_BARCODE_SCANNER), import.meta.env.VITE_SCANBOT_LICENSE_KEY || SCANBOT_TRIAL_LICENSE);
+        await scannerRef.current.start(scanBarcode, () => {
+          if (live) { setCamera('error'); setCameraError('Le scan a été interrompu. Réessayez ou saisissez le code.'); void stop(); }
+        });
         if (!live) { await scannerRef.current.stop(); return; }
         setCamera('running');
-        setFlashSupported(scannerRef.current.getRunningTrackCameraCapabilities().torchFeature().isSupported());
+        setFlashSupported(scannerRef.current.supportsTorch());
       } catch (err) {
         if (!live) return;
         setCamera('error');
         const name = err instanceof Error ? err.name : '';
-        setCameraError(name === 'NotAllowedError' ? 'Accès caméra refusé. Vous pouvez saisir le code ou importer une photo.' : 'Caméra indisponible. Vous pouvez saisir le code ou importer une photo.');
+        setCameraError(err instanceof Error && err.message.startsWith('La licence') ? err.message : name === 'NotAllowedError' ? 'Accès caméra refusé. Vous pouvez saisir le code ou importer une photo.' : 'Caméra indisponible. Vous pouvez saisir le code ou importer une photo.');
       }
     });
     return () => { live = false; void stop(); };
   }, [enabled, cameraAttempt, analyzing, manual, pendingPhoto, completed, scanBarcode, lock, stop]);
   const flash = async () => {
     if (!scannerRef.current?.isScanning || !flashSupported) return;
-    try { await scannerRef.current.applyVideoConstraints({ advanced: [{ torch: !flashOn } as MediaTrackConstraintSet] }); setFlashOn(value => !value); }
+    try { await scannerRef.current.setTorch(!flashOn); setFlashOn(value => !value); }
     catch { setFlashSupported(false); setFlashOn(false); }
   };
   const runPhoto = (load: () => Promise<string>) => {
