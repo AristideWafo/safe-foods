@@ -43,3 +43,14 @@ test('expired or invalid trial fails before opening camera', async () => {
     assert.equal(opened, false); assert.equal(scanner.isScanning, false);
   }
 });
+
+ test('license configuration accepts Scanbot concatenated examples without evaluating code', async () => {
+  const { normalizeScanbotLicense, scanbotLicenseError } = await import('../src/services/scanner/ScanbotLicense');
+  const raw = 'signature\npayload\n';
+  assert.equal(normalizeScanbotLicense(raw), raw);
+  assert.equal(normalizeScanbotLicense(JSON.stringify('signature\n') + ' + ' + JSON.stringify('payload\n')), raw);
+  assert.equal(normalizeScanbotLicense('const LICENSE_KEY = ' + JSON.stringify(raw) + ';'), raw);
+  assert.throws(() => normalizeScanbotLicense('"key" + process.exit()'));
+  assert.match(scanbotLicenseError('FAILURE_CORRUPTED'), /formatée/);
+  assert.match(scanbotLicenseError('FAILURE_APP_ID_MISMATCH'), /adresse/);
+});
