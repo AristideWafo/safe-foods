@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, TriangleAlert, Eye, RefreshCw, Info, Link as LinkIcon } from 'lucide-react';
 import { useStore } from '../store/useStore';
-import type { Product, AnalysisResult } from '../types';
+import type { Product, AnalysisResult, LabelCheck, LabelTruth } from '../types';
+import { LABEL_NOTE_MAX, LABEL_TRUTHS, LABEL_TRUTH_TEXT } from '../services/LabelCheck';
 import { getAllergenDefinitions } from '../constants/customAllergens';
 import { IconButton } from '../components/primitives/IconButton';
 import { Button } from '../components/primitives/Button';
@@ -14,7 +15,7 @@ import { analyzeProduct, normalizeIngredientText } from '../services/AnalysisEng
 export const Result = () => {
   const navigate = useNavigate();
   const { barcode, scanId } = useParams<{ barcode: string; scanId: string }>();
-  const { history, allergies, customAllergens, recordScan } = useStore();
+  const { history, allergies, customAllergens, recordScan, setLabelCheck } = useStore();
   const scan = history.find(item => item.id === scanId);
   const [loadError, setLoadError] = useState<{ barcode: string; message: string } | null>(null);
   const staticError = scanId ? (!scan ? 'Cette analyse n’est plus dans l’historique de ce navigateur.' : null)
@@ -41,14 +42,30 @@ export const Result = () => {
   </div>;
   if (!scan) return <div className="flex-1 flex flex-col items-center justify-center gap-4" role="status" aria-live="polite"><RefreshCw className="animate-spin w-10 h-10 text-primary-500" /><p>Recherche du produit…</p></div>;
   const result = analyzeProduct(scan.product, allergies, customAllergens);
-  return <ResultView key={scan.id} product={scan.product} result={result} onBack={() => navigate('/')} onScan={() => navigate('/scanner')} onCheckLabel={() => navigate('/scanner', { state: { referenceScanId: scan.id } })} onProfile={() => navigate('/profile')} profileEmpty={!allergies.length} onVerify={() => {
+  return <ResultView key={scan.id} product={scan.product} result={result} onBack={() => navigate('/')} onScan={() => navigate('/scanner')} onCheckLabel={() => navigate('/scanner', { state: { referenceScanId: scan.id } })} onProfile={() => navigate('/profile')} profileEmpty={!allergies.length} labelCheck={scan.labelCheck} onLabelCheck={(truth, note) => setLabelCheck(scan.id, truth, note)} onVerify={() => {
     const product = { ...scan.product, labelVerified: true, verifiedAt: Date.now(), labelReadable: true, ingredientsComplete: true, warningsComplete: true, language: 'fr' };
     navigate(`/scan/${recordScan(product)}`);
   }} />;
 };
 
-export const ResultView = ({ product, result, onBack, onScan, onProfile, profileEmpty, onVerify, onCheckLabel }: {
+const LabelCheckSection = ({ labelCheck, onSave }: { labelCheck?: LabelCheck; onSave: (truth: LabelTruth, note: string) => void }) => {
+  const [truth, setTruth] = useState<LabelTruth | undefined>(labelCheck?.truth);
+  const [note, setNote] = useState(labelCheck?.note ?? '');
+  return <section className="rounded-xl bg-background p-4 space-y-3 text-sm" aria-label="Journal d’essai">
+    <h2 className="font-bold">Journal d’essai : que dit l’étiquette ?</h2>
+    <p>Notez ce que vous lisez sur l’emballage. Cette note reste dans ce navigateur, ne change pas le résultat et n’est jamais une garantie.</p>
+    <div role="radiogroup" aria-label="Ce que dit l’étiquette" className="flex flex-col gap-2">
+      {LABEL_TRUTHS.map(item => <label key={item} className="flex gap-3 items-start"><input type="radio" name="label-truth" checked={truth === item} onChange={() => setTruth(item)} /><span>{LABEL_TRUTH_TEXT[item]}</span></label>)}
+    </div>
+    <label className="block"><span className="sr-only">Remarque</span><textarea value={note} maxLength={LABEL_NOTE_MAX} onChange={event => setNote(event.target.value)} rows={2} placeholder="Remarque (facultatif)" className="w-full rounded-lg border border-border-subtle bg-white p-3 text-[15px]" /></label>
+    <Button fullWidth variant="secondary" disabled={!truth} onClick={() => { if (!truth) return; onSave(truth, note); setNote(note.trim().slice(0, LABEL_NOTE_MAX)); }}>{labelCheck ? 'Mettre à jour le journal' : 'Enregistrer dans le journal'}</Button>
+    <p role="status">{labelCheck ? `Enregistré le ${formatDate(labelCheck.at)}.` : ''}</p>
+  </section>;
+};
+
+export const ResultView = ({ product, result, onBack, onScan, onProfile, profileEmpty, onVerify, onCheckLabel, labelCheck, onLabelCheck }: {
   product: Product; result: AnalysisResult; onBack: () => void; onScan: () => void; onProfile: () => void; profileEmpty: boolean; onVerify?: () => void; onCheckLabel?: () => void;
+  labelCheck?: LabelCheck; onLabelCheck?: (truth: LabelTruth, note: string) => void;
 }) => {
   const [checks, setChecks] = useState([false, false, false]);
   const definitions = getAllergenDefinitions(useStore(state => state.customAllergens));
@@ -86,6 +103,7 @@ export const ResultView = ({ product, result, onBack, onScan, onProfile, profile
         ].map((label, index) => <label key={label} className="flex gap-3 items-start"><input type="checkbox" checked={checks[index]} onChange={event => setChecks(old => old.map((v, i) => i === index ? event.target.checked : v))} /><span>{label}</span></label>)}
         <Button fullWidth disabled={!checks.every(Boolean)} onClick={onVerify}>Enregistrer une relecture séparée</Button>
       </section>}
+      {onLabelCheck && <LabelCheckSection labelCheck={labelCheck} onSave={onLabelCheck} />}
       <div className="rounded-[24px] bg-[#f4ede3] p-4 text-[13px] leading-relaxed">
         <h2 className="font-bold text-[15px] flex gap-2 items-center"><Info className="w-5 h-5" />Source et consultation</h2>
         <p>{product.source === 'photo' || product.barcode === 'SCAN_OCR' ? 'Lecture automatique de votre photo par Google Gemini.' : 'Fiche collaborative Open Food Facts.'}</p>

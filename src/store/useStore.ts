@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { AllergenId, AllergenDef, Product, ScanHistoryItem } from '../types';
+import type { AllergenId, AllergenDef, LabelTruth, Product, ScanHistoryItem } from '../types';
+import { parseLabelCheck, parseStatus } from '../services/LabelCheck';
+import { HISTORY_LIMIT } from '../constants/history';
 import { DEFAULT_CUSTOM_ALLERGENS, getAllergenDefinitions } from '../constants/customAllergens';
 import { analyzeProduct, normalizeIngredientText } from '../services/AnalysisEngine';
 import { DEFAULT_AI_PREFERENCES, parseAIPreferences } from '../services/AIPreferences';
@@ -22,6 +24,7 @@ export interface SafeEatState {
   addHistoryItem: (item: ScanHistoryItem) => void;
   recordScan: (product: Product) => string;
   clearHistory: () => void;
+  setLabelCheck: (id: string, truth: LabelTruth, note?: string) => void;
   resetProfile: () => void;
   toggleFavorite: (id: string) => void;
 }
@@ -53,8 +56,9 @@ export const sanitizeStoredState = (value: unknown): Pick<SafeEatState, 'allergi
     history.push({ id: entry.id, date: entry.date, barcode: product.barcode, product, result: analyzeProduct(product, allergies, customAllergens),
       engineVersionAtScan: typeof entry.engineVersionAtScan === 'string' ? entry.engineVersionAtScan : undefined,
       dictionaryVersionAtScan: typeof entry.dictionaryVersionAtScan === 'string' ? entry.dictionaryVersionAtScan : undefined,
-      allergiesAtScan: Array.isArray(entry.allergiesAtScan) ? parseAllergies(entry.allergiesAtScan, customAllergens) : undefined, isFavorite: entry.isFavorite === true });
-    if (history.length === 50) break;
+      allergiesAtScan: Array.isArray(entry.allergiesAtScan) ? parseAllergies(entry.allergiesAtScan, customAllergens) : undefined,
+      statusAtScan: parseStatus(entry.statusAtScan), labelCheck: parseLabelCheck(entry.labelCheck), isFavorite: entry.isFavorite === true });
+    if (history.length === HISTORY_LIMIT) break;
   }
   const settings = isRecord(state.preferences) ? state.preferences : {};
   return { allergies, history, customAllergens, aiPreferences: parseAIPreferences(state.aiPreferences), preferences: { traceAlerts: typeof settings.traceAlerts === 'boolean' ? settings.traceAlerts : true, sensoryAlerts: typeof settings.sensoryAlerts === 'boolean' ? settings.sensoryAlerts : true } };
@@ -93,16 +97,17 @@ export const useStore = create<SafeEatState>()(persist((set, get) => ({
     const allergies = state.allergies.includes(id) ? state.allergies.filter(a => a !== id) : [...state.allergies, id];
     return { allergies, history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, allergies, state.customAllergens) })) };
   }),
-  addHistoryItem: item => set(state => ({ history: state.history.some(scan => scan.id === item.id) ? state.history : [item, ...state.history].slice(0, 50) })),
+  addHistoryItem: item => set(state => ({ history: state.history.some(scan => scan.id === item.id) ? state.history : [item, ...state.history].slice(0, HISTORY_LIMIT) })),
   recordScan: product => {
     const id = crypto.randomUUID();
     const allergies = [...get().allergies];
     const result = analyzeProduct(product, allergies, get().customAllergens);
     get().addHistoryItem({ id, date: Date.now(), barcode: product.barcode, product, result,
-      engineVersionAtScan: result.engineVersion, dictionaryVersionAtScan: result.dictionaryVersion, allergiesAtScan: allergies });
+      engineVersionAtScan: result.engineVersion, dictionaryVersionAtScan: result.dictionaryVersion, allergiesAtScan: allergies, statusAtScan: result.status });
     return id;
   },
   clearHistory: () => set({ history: [] }),
+  setLabelCheck: (id, truth, note = '') => set(state => ({ history: state.history.map(scan => scan.id === id ? { ...scan, labelCheck: parseLabelCheck({ truth, note, at: Date.now() }) } : scan) })),
   toggleFavorite: id => set(state => ({ history: state.history.map(scan => scan.id === id ? { ...scan, isFavorite: !scan.isFavorite } : scan) })),
   resetProfile: () => set(state => ({ allergies: [], history: state.history.map(scan => ({ ...scan, result: analyzeProduct(scan.product, []) })) })),
 }), {

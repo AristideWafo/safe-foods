@@ -1,20 +1,38 @@
 import { useState } from 'react';
 import { useStore } from '../store/useStore';
+import { historyCapacityNotice } from '../constants/history';
 import { AppHeader } from '../components/navigation/AppHeader';
 import { RecentScanRow, RecentScansEmptyState } from '../components/history/RecentScanRow';
 import { IconButton } from '../components/primitives/IconButton';
-import { Search, ShieldCheck, Trash2 } from 'lucide-react';
+import { Download, Search, ShieldCheck, Trash2 } from 'lucide-react';
+import { Button } from '../components/primitives/Button';
+import { buildTrialCsv, shareTrialCsv } from '../services/TrialLog';
+import type { ExportOutcome } from '../services/TrialLog';
 import type { AnalysisStatus } from '../types';
 import { analyzeProduct } from '../services/AnalysisEngine';
 import { CountBadge } from '../components/feedback/CountBadge';
+
+const EXPORT_MESSAGE: Record<ExportOutcome, string> = { downloaded: 'Journal téléchargé (fichier CSV).', shared: 'Journal partagé.', cancelled: 'Export annulé.' };
 
 export const History = () => {
   const { history, allergies, customAllergens, clearHistory } = useStore();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AnalysisStatus | 'ALL' | 'FAVORITES'>('ALL');
+  const [exportMessage, setExportMessage] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const notice = historyCapacityNotice(history.length);
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true); setExportMessage('');
+    try {
+      const outcome: ExportOutcome = await shareTrialCsv(buildTrialCsv(history, customAllergens));
+      setExportMessage(EXPORT_MESSAGE[outcome]);
+    } catch { setExportMessage('L’export a échoué. Réessayez.'); }
+    finally { setExporting(false); }
+  };
 
   const handleClear = () => {
-    if (window.confirm("Voulez-vous vraiment effacer tout l'historique ?")) {
+    if (window.confirm("Voulez-vous vraiment effacer tout l'historique, y compris vos notes du journal ? Exportez le journal avant si vous en avez besoin.")) {
       clearHistory();
     }
   };
@@ -48,6 +66,12 @@ export const History = () => {
       <div className="px-6 pt-4 flex-1">
         <p className="uppercase text-[13px] font-bold text-text-muted tracking-wide">Vos scans récents</p>
         <h2 className="font-display text-display-lg font-bold mb-5">Historique <CountBadge count={history.length} /></h2>
+        {history.length > 0 && <div className="mb-5 space-y-2">
+          {notice && <p role="status" className="rounded-xl bg-amber-100 p-3 text-[13px] font-bold text-amber-950">{notice}</p>}
+          <Button fullWidth variant="secondary" onClick={handleExport} loading={exporting} leadingIcon={<Download className="w-5 h-5" />}>Exporter le journal (CSV)</Button>
+          <p className="text-[13px] text-text-secondary">Le fichier reste sur cet appareil tant que vous ne le partagez pas. Il contient vos allergènes, vos scans et vos notes : ne le partagez qu’avec une personne de confiance.</p>
+          <p role="status" className="text-[13px] font-bold">{exportMessage}</p>
+        </div>}
         <label className="guardian-card flex items-center gap-3 bg-white rounded-full px-5 py-4 mb-5"><Search className="w-5 h-5 text-text-muted shrink-0" /><span className="sr-only">Rechercher un produit scanné</span><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Rechercher un produit scanné…" className="w-full min-w-0 bg-transparent text-[15px]" /></label>
         <div role="group" aria-label="Filtrer par résultat ou favoris" className="flex flex-wrap gap-2 mb-7">{filters.map(item => <button key={item.id} aria-pressed={filter === item.id} onClick={() => setFilter(item.id)} className={`rounded-full px-4 py-3 text-[13px] font-bold ${filter === item.id ? 'bg-primary-500 text-white' : 'bg-white text-text-secondary'}`}>{item.label} <span className="ml-1 opacity-80">{sortedHistory.filter(scan => matchesFilter(scan, item.id)).length}</span></button>)}</div>
 

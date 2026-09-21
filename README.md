@@ -154,6 +154,12 @@ Le profil et l’historique sont conservés dans le localStorage du navigateur, 
 
 Le [rapport initial](RAPPORT_AUDIT.md) décrit les défauts découverts avant les corrections et sert de référence historique.
 
+## Journal d’essai
+
+Pour mesurer la fiabilité du verdict sur de vrais produits, la page de résultat propose de noter ce que dit l’étiquette réelle (aucun de mes allergènes, contient un de mes allergènes, je ne sais pas) avec une remarque de 300 caractères maximum. Cette note reste dans le localStorage, ne modifie jamais le verdict et n’est pas une garantie. Le verdict du moment du scan est conservé séparément du verdict recalculé avec le profil actuel.
+
+Le bouton « Exporter le journal (CSV) » de l’historique partage le fichier via la feuille de partage du téléphone, ou le télécharge à défaut. Aucune donnée ne quitte l’appareil tant que l’utilisateur ne partage pas le fichier. Colonnes : `date`, `product`, `barcode`, `source`, `verdict_at_scan`, `verdict_now`, `allergens_detected`, `traces_detected`, `allergies_at_scan`, `label_says`, `note`, `engine`, `dictionary`. Les textes venant d’Open Food Facts ou de la photo sont neutralisés contre les formules de tableur et les sauts de ligne. Le code-barres n’est pas forcé en texte : importer le fichier en texte dans le tableur pour conserver les zéros initiaux. Une alerte apparaît à 40 scans sur 50, car chaque nouveau scan supprime le plus ancien avec sa note.
+
 ## Suggestions de synonymes par IA
 
 Dans « Ajouter mon allergène », le badge bleu avec l’icône d’étincelles déclenche `POST /api/suggest-synonyms` avec `{ "name": "Kiwi" }`. Seul ce nom est envoyé à Google Gemini ; le profil et l’historique ne sont pas transmis. Le serveur réutilise `GEMINI_API_KEY`, `GEMINI_MODEL` et le délai configuré pour l’IA.

@@ -75,6 +75,15 @@ export interface AnalysisEvidence {
   rule: string;
 }
 
+// What the physical label says, as noted by the user. Never changes the analysis.
+export type LabelTruth = 'no_allergen' | 'has_allergen' | 'unsure';
+
+export interface LabelCheck {
+  truth: LabelTruth;
+  note?: string;
+  at: number;
+}
+
 export interface ScanHistoryItem {
   id: string;
   date: number;
@@ -83,6 +92,8 @@ export interface ScanHistoryItem {
   allergiesAtScan?: AllergenId[];
   engineVersionAtScan?: string;
   dictionaryVersionAtScan?: string;
+  statusAtScan?: AnalysisStatus;
+  labelCheck?: LabelCheck;
   result: AnalysisResult;
   isFavorite?: boolean;
 }
