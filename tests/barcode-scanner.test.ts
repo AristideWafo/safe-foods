@@ -1,56 +1,59 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { scannerProvider } from '../src/services/scanner/BarcodeScanner';
-import { ScanbotScanner } from '../src/services/scanner/ScanbotScanner';
-import type { ScanbotRuntime } from '../src/services/scanner/ScanbotScanner';
+import { createBarcodeScanner, normalizeBarcodeFormat, supportsNativeBarcodeDetector } from '../src/services/scanner/BarcodeScanner';
+import { CameraSession } from '../src/services/scanner/CameraSession';
 
-test('Scanbot is default and html5 remains selectable', () => {
-  assert.equal(scannerProvider(), 'scanbot');
-  assert.equal(scannerProvider('html5'), 'html5');
-  assert.throws(() => scannerProvider('unknown'));
+const installDetector = (value: unknown) => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'BarcodeDetector');
+  Object.defineProperty(globalThis, 'BarcodeDetector', { configurable: true, value });
+  return () => {
+    if (previous) Object.defineProperty(globalThis, 'BarcodeDetector', previous);
+    else Reflect.deleteProperty(globalThis, 'BarcodeDetector');
+  };
+};
+
+test('normalizes only the food barcode formats SafeEat accepts', () => {
+  assert.equal(normalizeBarcodeFormat('ean-8'), 'ean_8');
+  assert.equal(normalizeBarcodeFormat('EAN_13'), 'ean_13');
+  assert.equal(normalizeBarcodeFormat('upc_a'), 'upc_a');
+  assert.equal(normalizeBarcodeFormat('code_128'), null);
 });
-test('Scanbot forwards codes, supports torch, disposes once and can restart', async () => {
-  let disposed = 0;
-  let torch = false;
-  let config: Parameters<ScanbotRuntime['createBarcodeScanner']>[0];
-  const sdk = {
-    getLicenseInfo: async () => ({ status: 'OKAY' }),
-    createBarcodeScanner: async (configuration: typeof config) => {
-      config = configuration;
-      return { dispose: () => disposed++, getActiveCameraInfo: () => ({ supportsTorchControl: true }), setTorchState: async (value: boolean) => { torch = value; } };
-    },
-  } as unknown as ScanbotRuntime;
-  const scanner = new ScanbotScanner('reader', 'test', async () => sdk);
-  const codes: string[] = [];
-  await scanner.start(code => codes.push(code), () => {});
-  assert.equal(scanner.isScanning, true);
-  assert.equal(scanner.supportsTorch(), true);
-  config!.onBarcodesDetected?.({ barcodes: [{ text: '3274080005003' }] } as Parameters<NonNullable<typeof config.onBarcodesDetected>>[0]);
-  assert.deepEqual(codes, ['3274080005003']);
-  await scanner.setTorch(true);
-  assert.equal(torch, true);
-  await scanner.stop(); await scanner.stop();
-  assert.equal(disposed, 1); assert.equal(scanner.isScanning, false);
-  await scanner.start(() => {}, () => {}); await scanner.stop();
-  assert.equal(disposed, 2);
+
+test('chooses the native engine when the browser exposes a compatible detector', async () => {
+  const restore = installDetector(class {
+    static async getSupportedFormats() { return ['ean_8', 'ean_13', 'upc_a']; }
+    async detect() { return []; }
+  });
+  try {
+    assert.equal(await supportsNativeBarcodeDetector(), true);
+    const scanner = await createBarcodeScanner();
+    assert.equal(scanner.engine, 'native');
+  } finally { restore(); }
 });
-test('expired or invalid trial fails before opening camera', async () => {
-  for (const status of ['FAILURE_EXPIRED', 'FAILURE_APP_ID_MISMATCH']) {
-    let opened = false;
-    const sdk = { getLicenseInfo: async () => ({ status }), createBarcodeScanner: async () => { opened = true; } } as unknown as ScanbotRuntime;
-    const scanner = new ScanbotScanner('reader', 'test', async () => sdk);
-    await assert.rejects(scanner.start(() => {}, () => {}), /licence/);
-    assert.equal(opened, false); assert.equal(scanner.isScanning, false);
+
+test('requires every SafeEat format before choosing the native engine', async () => {
+  const restore = installDetector(class {
+    static async getSupportedFormats() { return ['ean_13']; }
+    async detect() { return []; }
+  });
+  try { assert.equal(await supportsNativeBarcodeDetector(), false); }
+  finally { restore(); }
+});
+
+test('releases a newly opened camera when the preview cannot start', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  let stopped = false;
+  const stream = { active: true, getTracks: () => [{ stop: () => { stopped = true; } }] } as unknown as MediaStream;
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { mediaDevices: { getUserMedia: async () => stream } } });
+  const video = { srcObject: null, play: async () => { throw new Error('play failed'); }, pause() {} } as unknown as HTMLVideoElement;
+  try {
+    const session = new CameraSession();
+    await assert.rejects(session.start(video), /play failed/);
+    assert.equal(stopped, true);
+    assert.equal(video.srcObject, null);
+    assert.equal(session.isActive, false);
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'navigator', previous);
+    else Reflect.deleteProperty(globalThis, 'navigator');
   }
-});
-
- test('license configuration accepts Scanbot concatenated examples without evaluating code', async () => {
-  const { normalizeScanbotLicense, scanbotLicenseError } = await import('../src/services/scanner/ScanbotLicense');
-  const raw = 'signature\npayload\n';
-  assert.equal(normalizeScanbotLicense(raw), raw);
-  assert.equal(normalizeScanbotLicense(JSON.stringify('signature\n') + ' + ' + JSON.stringify('payload\n')), raw);
-  assert.equal(normalizeScanbotLicense('const LICENSE_KEY = ' + JSON.stringify(raw) + ';'), raw);
-  assert.throws(() => normalizeScanbotLicense('"key" + process.exit()'));
-  assert.match(scanbotLicenseError('FAILURE_CORRUPTED'), /formatée/);
-  assert.match(scanbotLicenseError('FAILURE_APP_ID_MISMATCH'), /adresse/);
 });

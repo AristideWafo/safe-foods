@@ -14,23 +14,19 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run check:api",
     "smoke": "node scripts/smoke.mjs",
-    "check:api": "tsc -p tsconfig.api.json && node scripts/check-api-runtime.mjs",
-    "postinstall": "node scripts/copy-scanbot-engine.mjs",
-    "predev": "node scripts/copy-scanbot-engine.mjs",
-    "prebuild": "node scripts/copy-scanbot-engine.mjs"
+    "check:api": "tsc -p tsconfig.api.json && node scripts/check-api-runtime.mjs"
   },
   "dependencies": {
+    "@ericblade/quagga2": "^1.12.1",
     "@google/genai": "^2.4.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.0",
-    "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.41.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.3",
-    "scanbot-web-sdk": "^9.0.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

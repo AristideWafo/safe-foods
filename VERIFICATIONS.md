@@ -32,7 +32,7 @@ Les tests navigateur ont utilisé l’origine `127.0.0.1`, distincte du profil e
 ## Refonte du scanner — 16 septembre 2026
 
 - Référence visuelle : écran clair, aperçu caméra unique arrondi, bouton de scan central, galerie et flash, résultat en panneau inférieur.
-- Suppression des onglets et du second cadre ; le positionnement imposé par html5-qrcode est limité au conteneur caméra.
+- Suppression des onglets et du second cadre ; l’aperçu caméra reste limité au conteneur dédié.
 - Saisie manuelle dans le menu ; import et capture des ingrédients avec consentement conservés.
 - Résultat enregistré une seule fois, résumé avec statut allergique puis lien vers les détails persistants.
 - Vérification navigateur : disposition standard et mobile 375 × 667, menu, formulaire, produit Nutella réel, résumé À éviter avec lait et détail persistant après rechargement.

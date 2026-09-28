@@ -9,5 +9,3 @@ coverage/
 
 # Archives locales récupérables des copies en doublon, non utilisées par le projet.
 .local-backups/
-
-public/scanbot-engine/
