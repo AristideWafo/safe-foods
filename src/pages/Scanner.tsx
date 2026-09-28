@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createBarcodeScanner, scannerProvider } from '../services/scanner/BarcodeScanner';
+import { createBarcodeScanner } from '../services/scanner/BarcodeScanner';
 import type { BarcodeScanner } from '../services/scanner/BarcodeScanner';
-import { SCANBOT_TRIAL_LICENSE } from '../services/scanner/TrialLicense';
+import { CameraSession } from '../services/scanner/CameraSession';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Camera, Loader2, ArrowLeft, MoreVertical, Scan, Image as ImageIcon, Keyboard, Zap, ZapOff } from 'lucide-react';
 import { useStore } from '../store/useStore';
@@ -19,8 +19,7 @@ import { signalScanRisk } from '../services/ScanFeedback';
 import { compareLabelObservation } from '../services/LabelComparison';
 import { isRecord } from '../services/ProductValidation';
 
-const cameraFrame = (): string | null => {
-  const video = document.querySelector<HTMLVideoElement>('#reader-container video');
+const cameraFrame = (video: HTMLVideoElement | null): string | null => {
   if (!video?.videoWidth || !video.videoHeight) return null;
   const canvas = document.createElement('canvas');
   const ratio = Math.min(1, 2000 / Math.max(video.videoWidth, video.videoHeight));
@@ -52,6 +51,8 @@ export const Scanner = () => {
   const [flashOn, setFlashOn] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<() => Promise<string>>();
   const scannerRef = useRef<BarcodeScanner | null>(null);
+  const cameraSessionRef = useRef(new CameraSession());
+  const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const processing = useRef(false);
   const requestRef = useRef<AbortController | null>(null);
@@ -68,6 +69,7 @@ export const Scanner = () => {
   const stop = useCallback(() => lock(async () => {
     const scanner = scannerRef.current;
     if (scanner?.isScanning) await scanner.stop().catch(() => {});
+    await cameraSessionRef.current.stop(videoRef.current).catch(() => {});
   }), [lock]);
   useEffect(() => {
     mounted.current = true;
@@ -79,7 +81,7 @@ export const Scanner = () => {
     const controller = new AbortController(); requestRef.current = controller;
     const timer = setTimeout(() => controller.abort(), 65000);
     try {
-      setFrozenFrame(previous => cameraFrame() || previous);
+      setFrozenFrame(previous => cameraFrame(videoRef.current) || previous);
       await stop();
       const product = await load(controller.signal);
       if (!mounted.current || controller.signal.aborted) return;
@@ -104,15 +106,19 @@ export const Scanner = () => {
       if (!live) return;
       setCamera('starting'); setCameraError(null); setFlashOn(false); setFlashSupported(false);
       try {
+        if (!videoRef.current) throw new Error('Aperçu caméra indisponible.');
         if (scannerRef.current?.isScanning) await scannerRef.current.stop();
+        await cameraSessionRef.current.start(videoRef.current);
         if (!live) return;
-        scannerRef.current ??= await createBarcodeScanner('reader-container', scannerProvider(import.meta.env.VITE_BARCODE_SCANNER), import.meta.env.VITE_SCANBOT_LICENSE_KEY || SCANBOT_TRIAL_LICENSE);
-        await scannerRef.current.start(scanBarcode, () => {
-          if (live) { setCamera('error'); setCameraError('Le scan a été interrompu. Réessayez ou saisissez le code.'); void stop(); }
-        });
-        if (!live) { await scannerRef.current.stop(); return; }
+        scannerRef.current ??= await createBarcodeScanner();
+        await scannerRef.current.start(videoRef.current, result => scanBarcode(result.code));
+        if (!live) {
+          await scannerRef.current.stop();
+          await cameraSessionRef.current.stop(videoRef.current);
+          return;
+        }
         setCamera('running');
-        setFlashSupported(scannerRef.current.supportsTorch());
+        setFlashSupported(cameraSessionRef.current.supportsTorch());
       } catch (err) {
         if (!live) return;
         setCamera('error');
@@ -123,8 +129,8 @@ export const Scanner = () => {
     return () => { live = false; void stop(); };
   }, [enabled, cameraAttempt, analyzing, manual, pendingPhoto, completed, scanBarcode, lock, stop]);
   const flash = async () => {
-    if (!scannerRef.current?.isScanning || !flashSupported) return;
-    try { await scannerRef.current.setTorch(!flashOn); setFlashOn(value => !value); }
+    if (!cameraSessionRef.current.isActive || !flashSupported) return;
+    try { await cameraSessionRef.current.setTorch(!flashOn); setFlashOn(value => !value); }
     catch { setFlashSupported(false); setFlashOn(false); }
   };
   const runPhoto = (load: () => Promise<string>) => {
@@ -145,7 +151,7 @@ export const Scanner = () => {
   };
   const importPhoto = (file: File) => requestPhoto(() => preparePhoto(file));
   const capture = () => {
-    const data = cameraFrame();
+    const data = cameraFrame(videoRef.current);
     if (!data) { fileRef.current?.click(); return; }
     setFrozenFrame(data); requestPhoto(async () => data);
   };
@@ -165,7 +171,7 @@ export const Scanner = () => {
     </header>
     <div className="flex-1 flex flex-col justify-center px-5 py-6">
       <div className="scanner-camera relative w-full aspect-[4/5] max-h-[44dvh] rounded-[40px] border border-border-subtle overflow-hidden bg-[#f4ede3] shrink-0">
-        <div id="reader-container" className={manual ? 'invisible' : undefined} />
+        <video ref={videoRef} muted playsInline aria-label="Aperçu de la caméra pour scanner un code-barres" className={manual ? 'invisible' : undefined} />
         {!manual && camera !== 'running' && (frozenFrame || completed?.product.imageUrl) && <img src={frozenFrame || completed?.product.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />}
         {!manual && camera !== 'running' && (!frozenFrame && !completed?.product.imageUrl || analyzing || camera === 'starting') && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-[#757575] pointer-events-none">
           {analyzing || camera === 'starting' ? <Loader2 className="w-10 h-10 animate-spin" /> : <Camera className="w-12 h-12" strokeWidth={1.2} />}

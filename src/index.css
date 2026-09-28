@@ -289,8 +289,7 @@ p, h1, h2, h3, h4, h5, h6, span {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-/* html5-qrcode sets inline positioning: keep its camera inside the preview. */
-.scanner-camera #reader-container {
+.scanner-camera video {
   position: absolute !important;
   inset: 0;
   width: 100% !important;
@@ -298,13 +297,8 @@ p, h1, h2, h3, h4, h5, h6, span {
   border: 0 !important;
   padding: 0 !important;
   overflow: hidden;
-}
-.scanner-camera video {
-  width: 100% !important;
-  height: 100% !important;
   object-fit: cover;
 }
-.scanner-camera #qr-shaded-region { display: none !important; }
 .scanner-mode-toggle { position: absolute; z-index: 20; bottom: 16px; left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: max-content; max-width: calc(100% - 24px); padding: 12px 16px; border-radius: 999px; border: 1px solid rgb(255 255 255 / 65%); background: rgb(255 255 255 / 78%); backdrop-filter: blur(14px); color: #1e1b16; font-size: 14px; font-weight: 800; box-shadow: 0 4px 14px rgb(0 0 0 / 10%); }
 .scanner-mode-toggle svg { width: 18px; height: 18px; flex-shrink: 0; }
 .scanner-mode-toggle:disabled { opacity: 0.5; }

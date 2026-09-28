@@ -188,8 +188,6 @@ Désactiver les suggestions IA bloque leur demande et annule une demande en cour
 
 ### Moteur de lecture des codes-barres
 
-La page Scanner passe par l’interface `BarcodeScanner` (`src/services/scanner/`). Scanbot Web SDK est le moteur par défaut ; `VITE_BARCODE_SCANNER=html5` réactive html5-qrcode à la prochaine construction. Les deux moteurs lisent EAN-8, EAN-13 et UPC-A et proposent le même cycle démarrage/arrêt et le contrôle du flash lorsque la caméra le permet.
+La page Scanner passe par l’interface `BarcodeScanner` (`src/services/scanner/`) et une session caméra distincte. Après `getUserMedia`, elle utilise `BarcodeDetector` lorsqu’il est disponible pour EAN-8, EAN-13 et UPC-A ; les navigateurs qui ne le proposent pas utilisent Quagga2. Les deux moteurs lisent le même aperçu vidéo, retournent un résultat normalisé et s’arrêtent avant la recherche produit. Le contrôle du flash appartient à la session caméra, lorsque l’appareil le permet.
 
-La licence temporaire fournie couvre `localhost` et `safe-foods.vercel.app`. Pour la remplacer, définir `VITE_SCANBOT_LICENSE_KEY` et reconstruire le site. Cette licence est destinée au navigateur et apparaît dans le client compilé. Une URL de preview Vercel nécessite une licence couvrant son domaine. Après expiration, le scanner affiche une erreur ; la saisie manuelle et l’import photo restent accessibles. Le changement de moteur est explicite, sans bascule automatique qui masquerait un problème de licence.
-
-Les fichiers JS/WASM du moteur barcode-only sont copiés depuis le paquet npm vers `public/scanbot-engine/` avant le développement et la construction, puis servis avec le site. Ils sont générés et exclus du dépôt. Le SDK est chargé à l’ouverture du scanner ; le mode multithread est désactivé pour fonctionner sans en-têtes d’isolation supplémentaires.
+Cette architecture ne dépend ni d’une licence de lecture, ni d’un moteur propriétaire. Une erreur de permission ou de caméra ne déclenche pas de repli : la saisie manuelle et l’import photo restent accessibles dans tous les cas.
