@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBarcodeScanner, normalizeBarcodeFormat, supportsNativeBarcodeDetector } from '../src/services/scanner/BarcodeScanner';
 import { CameraSession } from '../src/services/scanner/CameraSession';
+import { NativeBarcodeScanner } from '../src/services/scanner/NativeBarcodeScanner';
 
 const installDetector = (value: unknown) => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'BarcodeDetector');
@@ -55,5 +56,60 @@ test('releases a newly opened camera when the preview cannot start', async () =>
   } finally {
     if (previous) Object.defineProperty(globalThis, 'navigator', previous);
     else Reflect.deleteProperty(globalThis, 'navigator');
+  }
+});
+
+test('native detection also tries a 180-degree frame after a normal frame fails', async () => {
+  const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const previousRequestAnimationFrame = Object.getOwnPropertyDescriptor(globalThis, 'requestAnimationFrame');
+  const previousCancelAnimationFrame = Object.getOwnPropertyDescriptor(globalThis, 'cancelAnimationFrame');
+  const canvas = { width: 0, height: 0, getContext: () => ({ save() {}, translate() {}, rotate() {}, drawImage() {}, restore() {} }) } as unknown as HTMLCanvasElement;
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: { createElement: () => canvas } });
+  let nextFrame: (() => void) | undefined;
+  Object.defineProperty(globalThis, 'requestAnimationFrame', { configurable: true, value: (callback: () => void) => { nextFrame = callback; return 1; } });
+  Object.defineProperty(globalThis, 'cancelAnimationFrame', { configurable: true, value: () => {} });
+  const restore = installDetector(class {
+    static async getSupportedFormats() { return ['ean_8', 'ean_13', 'upc_a']; }
+    async detect(source: HTMLVideoElement | HTMLCanvasElement) {
+      return source === canvas ? [{ rawValue: '3017620422003', format: 'ean_13' }] : [];
+    }
+  });
+  const video = { readyState: 2, videoWidth: 640, videoHeight: 480 } as HTMLVideoElement;
+  const codes: string[] = [];
+  try {
+    const scanner = new NativeBarcodeScanner();
+    await scanner.start(video, result => codes.push(result.code));
+    nextFrame?.();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(codes, ['3017620422003']);
+    await scanner.stop();
+  } finally {
+    restore();
+    if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument); else Reflect.deleteProperty(globalThis, 'document');
+    if (previousRequestAnimationFrame) Object.defineProperty(globalThis, 'requestAnimationFrame', previousRequestAnimationFrame); else Reflect.deleteProperty(globalThis, 'requestAnimationFrame');
+    if (previousCancelAnimationFrame) Object.defineProperty(globalThis, 'cancelAnimationFrame', previousCancelAnimationFrame); else Reflect.deleteProperty(globalThis, 'cancelAnimationFrame');
+  }
+});
+
+test('native detection does not report a frame that resolves after the scanner stops', async () => {
+  let resolveDetection: (codes: { rawValue: string; format: string }[]) => void = () => {};
+  const restore = installDetector(class {
+    static async getSupportedFormats() { return ['ean_8', 'ean_13', 'upc_a']; }
+    async detect() {
+      return new Promise<{ rawValue: string; format: string }[]>(resolve => { resolveDetection = resolve; });
+    }
+  });
+  const video = { readyState: 2, videoWidth: 640, videoHeight: 480 } as HTMLVideoElement;
+  const codes: string[] = [];
+  try {
+    const scanner = new NativeBarcodeScanner();
+    const start = scanner.start(video, result => codes.push(result.code));
+    await new Promise(resolve => setImmediate(resolve));
+    await scanner.stop();
+    resolveDetection([{ rawValue: '3017620422003', format: 'ean_13' }]);
+    await start;
+    assert.deepEqual(codes, []);
+  } finally {
+    restore();
   }
 });
